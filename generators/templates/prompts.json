@@ -1,0 +1,7 @@
+{
+    "prompts":
+        [
+            "create short plot for a $TYPE $GENRE movie starring $ROLE1 and a $ROLE2 participating in $TROPE"
+        ],
+    "common": "do not include the ending, include a title and a catchy tagline"
+}
