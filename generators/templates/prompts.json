@@ -1,9 +1,0 @@
-{
-    "prompts":
-        [
-            "$COMMON_START a $TYPE $GENRE movie starring $ROLE1 and a $ROLE2 participating in $TROPE, $COMMON_END",
-            "$COMMON_START a movie starring a $ROLE at $LOCATION in $TYPE $GENRE with $TROPE, $COMMON_END"
-        ],
-    "common_start": "create short plot for",
-    "common_end": "do not include the ending, include a title and a catchy tagline"
-}

@@ -1,0 +1,9 @@
+{
+    "prompt_start": "create short plot for",
+    "prompt_end": "do not include the ending, include a title and a catchy tagline",
+    "prompts":
+        [
+            "a {types} {genres} movie starring {roles} and a {roles} participating in {tropes}",
+            "a movie starring a {roles} at {locations} in {types} {genres} with {tropes}"
+        ]
+}
