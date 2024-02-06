@@ -1,5 +1,11 @@
 {
-    "title":"This is an example movie",
-    "tagline":"This is an example tagline",
-    "description":"This is an example descroption"
+    "id": "1",
+    "title": "title",
+    "tagline": "Tagline",
+    "rating": "Rating",
+    "rating_content": "Why its Rated that way",
+    "description": "Description",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Prompt",
+    "aoai_deployment": "aoai_deployment name"
 }

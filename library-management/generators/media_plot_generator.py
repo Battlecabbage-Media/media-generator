@@ -3,18 +3,21 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 import json
 import random
+import hashlib
+import sys
 
 load_dotenv()
 
-# TODO Rewrite all to take API call variable or be passed in.
+# Check if a count is provided, if not default to 1
 default_count=1
 try:
-    default_count
+    sys.argv[1]
 except NameError:
+    print("No count provided, defaulting to 1 generation")
     generate_count=1 #Default to only one generation if no amount is passed
 else:
     if isinstance(default_count, int):
-        generate_count=default_count
+        generate_count=int(sys.argv[1])
     else:
         exit("No valid count provided")
 
@@ -47,26 +50,60 @@ def buildPrompt():
         prompt=prompt_start + " " + prompt_main + " " + prompt_end
         return prompt
 
-
+# Submits the prompt to the API and returns the response as a formatted json object
 def submitPrompt(prompt):
 
     client = AzureOpenAI(
         api_key=os.getenv("AZURE_OPENAI_KEY"),  
-        api_version="2023-12-01-preview",
+        api_version=os.getenv("API_VERSION"),
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        )
-
-    deployment_name=os.getenv("AZURE_DEPLOYMENT_NAME") #This will correspond to the custom name you chose for your deployment when you deployed a model. Use a gpt-35-turbo-instruct deployment. 
+    )
+    deployment_name=os.getenv("AZURE_DEPLOYMENT_NAME")
     
     # Send a completion call to generate an answer
-    print('Sending a movie plot completion job.\nPrompt:\n'+prompt+'\n')
-    response = client.completions.create(model=deployment_name, prompt=prompt, max_tokens=500, temperature=0.6)
-    print(response.choices[0].text)
-    
+    print('Generating movie plot.\n\nPrompt:\n'+prompt+'\n')
+    response = client.chat.completions.create(model=deployment_name, messages=[{"role": "user", "content":prompt}], max_tokens=500, temperature=0.6)
+    #print(response.choices[0].message.content)
+    completion=response.choices[0].message.content
+    start_index = completion.find("{")
+    end_index = completion.find("}")
+    completion = json.loads(completion[start_index:end_index+1])
+    print(completion)
+
+    # Create a new md5 hash object
+    hash_object = hashlib.md5()
+    # Update the hash object with the bytes of the string
+    hash_object.update(completion["title"].encode())
+    # Get the hexadecimal representation of the hash
+    media_id = hash_object.hexdigest()
+
+    media_object = { 
+            "id":media_id,
+            "title":completion["title"],
+            "tagline":completion["tagline"],
+            "rating":completion["rating"],
+            "rating_content":completion["rating_content"],
+            "description":completion["description"],
+            "poster_url":"movie_poster_url.jpeg",
+            "prompt":prompt,
+            "aoai_deployment":deployment_name
+        }
+    return json.dumps(media_object)
+
+# Saves the media object to a file based upon ID hash 
+def saveCompletion(media_object):
+
+    with open(working_dir + "/outputs/media/"+media_object["id"]+".json", "a") as json_file:
+        json.dump(media_object, json_file)
+        json_file.write("\n")
+        print("\nMedia object saved: " + media_object["id"])
+
+# Main loop to generate the media objects
 i=0
 while i < generate_count:
     prompt=buildPrompt()
-    submitPrompt(prompt)
+    media_object=json.loads(submitPrompt(prompt))
+    saveCompletion(media_object)
     i+=1
 
-
+print("\nMedia objects generated: " + str(generate_count))

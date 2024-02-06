@@ -1,2 +1,3 @@
 .env
 outputs/media/*.json
+__azurite_db_table__.json

@@ -1,15 +1,16 @@
 {
     "prompts_start": 
         [
-            " Create a title, catchy tagline, and description teaser of"
-        ],
-    "prompts_end": 
-        [
-            " make the character names of {origins} origin. Output result as json, title as the title property, tagline as the tagline property, and description as the description property. Place <<<>>> at the end of the JSON object. The JSON is :"
+            "Create a title, catchy tagline, and description teaser of a movie"
         ],
     "prompts_main":
         [
-            "a {types} {genres} movie starring a {roles} and a {roles} participating in {tropes}",
-            "a movie starring a {roles} at {locations} in {types} {genres} with {tropes}"
+            "that is a {types} {genres} starring a {roles} and a {roles} participating in {tropes}.",
+            "starring a {roles} at {locations} in {types} {genres} with {tropes}",
+            "that is located at {locations} of a {genres} {types} where {roles} and {roles} are the main characters. The movie is about {tropes} and during {eras}"
+        ],
+    "prompts_end": 
+        [
+            " make the character names of {origins} origin. Provide the appropriate movie rating from the MPAA and the reason for the rating. Output result as json, title as the title property, tagline as the tagline property, rating as rating, rating reason as rating_content and description as the description property."
         ]
 }
