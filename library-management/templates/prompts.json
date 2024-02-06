@@ -11,6 +11,6 @@
         ],
     "prompts_end": 
         [
-            " make the character names of {origins} origin. Provide the appropriate movie rating from the MPAA and the reason for the rating. Output result as json, title as the title property, tagline as the tagline property, rating as rating, rating reason as rating_content and description as the description property."
+            " make the character names of {origins} origin. Provide the appropriate movie rating from the MPAA and the reason for the rating. Provide a short prompt that could be used in an image generator to create a movie poster that is not graphic, explicit, sexual or violent. Output result as json, title as the title property, tagline as the tagline property, rating as rating, rating reason as rating_content, summary as image_prompt and description as the description property."
         ]
 }

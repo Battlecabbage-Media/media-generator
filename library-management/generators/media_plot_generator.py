@@ -10,16 +10,11 @@ load_dotenv()
 
 # Check if a count is provided, if not default to 1
 default_count=1
-try:
-    sys.argv[1]
-except NameError:
-    print("No count provided, defaulting to 1 generation")
-    generate_count=1 #Default to only one generation if no amount is passed
+if len(sys.argv) > 1: 
+    if isinstance(sys.argv[1], int):
+        generate_count=sys.argv[1]
 else:
-    if isinstance(default_count, int):
-        generate_count=int(sys.argv[1])
-    else:
-        exit("No valid count provided")
+    generate_count=default_count
 
 # TODO how does this work for a function?
 working_dir=os.getcwd()
@@ -84,8 +79,9 @@ def submitPrompt(prompt):
             "rating":completion["rating"],
             "rating_content":completion["rating_content"],
             "description":completion["description"],
-            "poster_url":"movie_poster_url.jpeg",
             "prompt":prompt,
+            "image_prompt":completion["image_prompt"],
+            "poster_url":"movie_poster_url.jpeg",
             "aoai_deployment":deployment_name
         }
     return json.dumps(media_object)
