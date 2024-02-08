@@ -1,3 +1,7 @@
 .env
-outputs/media/*.json
+outputs/media/objects/*.json
+outputs/media/flagged/*.json
+outputs/media/images/*.jpg
+!outputs/media/images/movie_poster.jpg
+outputs/media/images/*.png
 __azurite_db_table__.json

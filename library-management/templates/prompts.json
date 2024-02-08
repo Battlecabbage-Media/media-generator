@@ -1,16 +1,13 @@
 {
-    "prompts_start": 
-        [
-            "Create a title, catchy tagline, and description teaser of a movie"
-        ],
-    "prompts_main":
-        [
-            "that is a {types} {genres} starring a {roles} and a {roles} participating in {tropes}.",
-            "starring a {roles} at {locations} in {types} {genres} with {tropes}",
-            "that is located at {locations} of a {genres} {types} where {roles} and {roles} are the main characters. The movie is about {tropes} and during {eras}"
-        ],
-    "prompts_end": 
-        [
-            " make the character names of {origins} origin. Provide the appropriate movie rating from the MPAA and the reason for the rating. Provide a short prompt that could be used in an image generator to create a movie poster that is not graphic, explicit, sexual or violent. Output result as json, title as the title property, tagline as the tagline property, rating as rating, rating reason as rating_content, summary as image_prompt and description as the description property."
-        ]
+    "prompts_start": [
+        "Create a {tones} title, short {tones} tagline, and description teaser of a MPAA {ratings} rated movie"
+    ],
+    "prompts_main": [
+        "that is a {types} {genres} starring a {roles} and a {roles} participating in a {tropes}.",
+        "starring a {roles} at {locations} in {types} {genres} with a {tropes}",
+        "that is located at {locations} of a {genres} {types} film where {roles} and {roles} are the main characters. The movie is about a {tropes} during {eras}."
+    ],
+    "prompts_end": [
+        "make the character names of {origins} origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Provide a popularity score between 1 and 10, the movie can be very unpopular and some very popular. Give the reason for popularity as popularity_reason. Give me a one word theme for the description. Provide a descriptive prompt that could be used in an image generator to create a movie poster that is not graphic, weapons, explicit, sexual or violent. Output result as json, title as the title property, tagline as the tagline property, rating as rating, rating reason as rating_content, popularity score as popularity_score, descriptive prompt as image_prompt, theme as theme, description as the description property. Provide me only random an actor/actress name for role_one, random actor/actress name for role_two and random director name as director"
+    ]
 }

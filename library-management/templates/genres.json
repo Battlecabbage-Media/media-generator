@@ -23,24 +23,13 @@
         "Thriller",
         "War",
         "Western",
-        "Zombie",
         "Fantasy",
-        "Sci-Fi",
-        "Cyberpunk",
-        "Steampunk",
         "Romantic Comedy",
         "Slasher",
         "Supernatural",
         "Mockumentary",
-        "Musical Comedy",
-        "Political Thriller",
-        "Psychological Thriller",
-        "Science Fiction",
-        "Space Opera",
         "Spy Film",
         "Teen",
-        "Tragedy",
-        "Urban",
-        "Vampire"
+        "Tragedy"
     ]
 }

@@ -4,8 +4,11 @@
     "tagline": "Tagline",
     "rating": "Rating",
     "rating_content": "Why its Rated that way",
+    "critic_score": "5",
+    "popularity": "10",
     "description": "Description",
-    "poster_url": "movie_poster_url.jpeg",
     "prompt": "Prompt",
+    "image_prompt": "Image Prompt",
+    "poster_url": "movie_poster_url.jpeg",
     "aoai_deployment": "aoai_deployment name"
 }
