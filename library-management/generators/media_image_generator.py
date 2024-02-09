@@ -23,11 +23,49 @@ load_dotenv()
 # 5. Ability to add a logo to the poster like the rating
 # 6. Format the font to have better readability. Maybe on complimentary color, outlines, etc.
 # 7. Proper checks if certain values came back from completion, example critic_score
+# 8. Check for letterbox image and regenerate, Cameron?
+
+
+# Check if the image has already been generated
+def checkImage(images_directory,image_id):
+    if os.path.isfile(images_directory + image_id + ".jpg"):
+        return True
+    else:
+        return False
+
+
+# Generate the prompt for the image based upon the media object info
+def generateImagePrompt(media_object):
+    
+    # Create the AzureOpenAI client for image prompt
+    client = AzureOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
+        api_version=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION"),
+        azure_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
+    )
+    deployment_name=os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
+    
+    # TODO: Add error handling for failed requests
+    # Send the description to the API
+    with open(templates_base + "prompts.json") as json_file:
+
+        prompt_json=json.load(json_file)
+        prompt_image_json=random.choice(prompt_json["prompts_image"])
+        #TODO maybe write this more efficiently?
+        full_prompt = prompt_image_json + "\ntitle: " + media_object["title"] + "\ntagline: " + media_object["tagline"] + "\nMPAA Rating: " + media_object["mpaa_rating"] + "\ndescription: " + media_object["description"]
+
+        response = client.chat.completions.create(model=deployment_name, messages=[{"role": "user", "content":full_prompt}], max_tokens=500, temperature=0.7)
+        completion=response.choices[0].message.content
+        # Find the start and end index of the json object
+        start_index = completion.find("{")
+        end_index = completion.find("}")
+        completion = json.loads(completion[start_index:end_index+1])
+
+        return completion
+    
 
 # Generate the image using the prompt
-def generateImage(images_directory, data):
-
-    print("\nGenerating image for " + data["id"] + "\nPrompt: " + data["image_prompt"])
+def generateImage(image_prompt, media_object):
 
     client = AzureOpenAI(
         api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
@@ -37,7 +75,7 @@ def generateImage(images_directory, data):
 
     result = client.images.generate(
         model=os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME"), # the name of your DALL-E 3 deployment
-        prompt=data["image_prompt"],
+        prompt=image_prompt["image_prompt"] + " Image has no text",
         n=1,
         size='1024x1792'
     )
@@ -49,17 +87,19 @@ def generateImage(images_directory, data):
         os.mkdir(images_directory)
 
     # Initialize the image path (note the filetype should be png)
-    image_path = os.path.join(images_directory, data["id"] +'.png')
+    image_path = os.path.join(images_directory, media_object["id"] +'.png')
 
-    # Retrieve the generated image
+    # Retrieve the generated image and save it to the images directory
     image_url = json_response["data"][0]["url"]  # extract image URL from response
     generated_image = requests.get(image_url).content  # download the image
     with open(image_path, "wb") as image_file:
         image_file.write(generated_image)
 
-def processImage(images_directory, data):
 
-    image=images_directory + "/" + data["id"] + ".png"
+# Add various text to the image and resize
+def processImage(completion, media_object):
+
+    image=images_directory + "/" + media_object["id"] + ".png"
 
     # Open an image file for manipulation
     with Image.open(image) as img:
@@ -69,17 +109,19 @@ def processImage(images_directory, data):
 
         draw = ImageDraw.Draw(img)
 
-        text = data["title"]
-        # text = data["title"].replace(':','\n:')
+        text = media_object["title"]
+        # text = media_object["title"].replace(':','\n:')
+
         fontsize = 1  # starting font size
 
         # portion of image width you want text width to be
         img_fraction = 0.95
 
+        # TODO use the font suggested by the completion?
         fonts = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
         font_selected=random.choice(fonts)
-        #print('font selected',font_selected)
         font = ImageFont.truetype(font_selected, fontsize)
+      
         # font = ImageFont.truetype("arial.ttf", fontsize)
         #print(img_fraction*img.size[0],'space',font.getlength(text),'start size')
         while font.getlength(text) < img_fraction*img.size[0]:
@@ -91,15 +133,15 @@ def processImage(images_directory, data):
         # optionally de-increment to be sure it is less than criteria
         fontsize -= 1
         font = ImageFont.truetype(font_selected, fontsize)
-
         
         w = font.getlength(text)
         #w = draw.textlength(text, font_size=fontsize)
         w_placement=(W-w)/2
         draw.text((w_placement, 50), text, font=font) # put the text on the image
 
+
         draw = ImageDraw.Draw(img)
-        text = data["tagline"]
+        text = media_object["tagline"]
         fontsize = 1  # starting font size
 
         # portion of image width you want text width to be
@@ -127,43 +169,49 @@ def processImage(images_directory, data):
     #Delete the original png file
     os.remove(image)
 
-# Check if the image has already been generated
-def checkImage(images_directory,image_id):
-    if os.path.isfile(images_directory + image_id + ".jpg"):
-        print("\nImage already exists for " + image_id + ", skipping.")
-        return True
-    else:
-        return False
+
+def formatText(text, type, img):
+    print("here")
 
 
-def findNextPrompt():
-    # Specify the directory
-    working_dir=os.getcwd()
-    objects_directory = working_dir + "/outputs/media/objects/"
-    images_directory = working_dir + "/outputs/media/images/"
+def main():
 
-    # Find the first JSON file
+    # Find the first JSON file (media object)
     for filename in os.listdir(objects_directory):
         if filename.endswith('.json'):
             filepath = os.path.join(objects_directory, filename)
-            # Open the JSON file and extract the "id" and "image prompt" keys
             with open(filepath, 'r') as file:
-                data = json.load(file)
-                #image_id=data.get('id', None)
-                #image_prompt = data.get('image_prompt', None)
+                media_object = json.load(file)
 
-                # Check if the image has already been generated
-                # If the image has not been generated for provided object, run the generator
-                result = checkImage(images_directory, data["id"])
-                if result == False:
-                    generateImage(images_directory, data)
-                    processImage(images_directory, data)
-                else:
-                    continue
+                # Check if the image has already been generated or exists based upon id
+                result = checkImage(images_directory, media_object["id"])
+                if result == True:        
+
+                    print("\nImage already exists for " + media_object["id"] + ", skipping.")
+
+                elif result == False:
+
+                    print("\nGenerating Image Prompt for "  + media_object["title"] + ", ID: " + media_object["id"])
+                    completion=generateImagePrompt(media_object)
+                    print("Image Prompt:\n" + completion["image_prompt"])
+                    
+                    generateImage(completion, media_object)
+                    print("Image Generated for " + media_object["title"] + " at " + str(images_directory) + media_object["id"] + ".png")
+                          
+                    processImage(completion, media_object)
+
+                continue
 
     else:
         print("\nNo Media Objects needing a poster generated.")
         exit()
 
+
+load_dotenv()
+working_dir=os.getcwd()
+objects_directory = working_dir + "/outputs/media/objects/"
+images_directory = working_dir + "/outputs/media/images/"
+templates_base = working_dir + "/library-management/templates/"
+
 # Run the main loop
-findNextPrompt()
+main()
