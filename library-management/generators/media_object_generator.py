@@ -6,6 +6,7 @@ import random
 import hashlib
 import sys
 import argparse
+import datetime
 
 # REQUIREMENTS
 # pip install python-dotenv
@@ -109,14 +110,9 @@ def submitPrompt(prompt):
             "critic_review":completion["critic_review"],
             "popularity_score":round(random.uniform(1, 10), 1),
             "genre":completion["genre"],
-            #"popularity_score":completion["popularity_score"],
-            #"popularity_reason":completion["popularity_reason"],
-            #"theme":completion["theme"],
             "description":completion["description"],
             "prompt":prompt,
-            #"image_prompt":completion["image_prompt"],
             "poster_url":"movie_poster_url.jpeg",
-
             "aoai_deployment":deployment_name
         }
     
@@ -134,16 +130,6 @@ def saveCompletion(media_object):
 # Main function to run the generator
 def main():
 
-    # For command line arguments
-    parser = argparse.ArgumentParser(description="Provide various run commands.")
-    # Argument for the count of media objects to generate
-    parser.add_argument("-c", "--count", help="Number of media objects to generate")
-    # Argument for the dry run, to generate a response without saving it to a file
-    parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, generate a response without saving it to a file")
-    parser.add_argument("-q", "--quiet", action='store_true', help="Hide object outputs like prompts and completions")
-
-    args = parser.parse_args()
-
     # Check if a count command line value is provided and is a digit, if not default to 1
     if(args.count):
         if(args.count.isdigit()):
@@ -156,35 +142,54 @@ def main():
     
     # Notify if dry run mode is enabled
     if(args.dryrun): print("\nDry run mode enabled, generated media objects will not be saved")
-    if(args.quiet): print("\nQuiet mode enabled, no object outputs will be displayed, just steps info")
 
     # Main loop to generate the media objects
     i=0
     while i < generate_count:
 
         # Print the current media count being generated
-        print("\nGenerating media object: " + str(i+1) + " of " + str(generate_count))
+        print(f"{str(datetime.datetime.now())} - Generating media object: {str(i+1)} of {str(generate_count)}")
 
-        # Build the prompt and print it        
+        # Build the prompt and print it
+        if args.verbose: print(f"{str(datetime.datetime.now())} - Building Prompt")
         prompt=buildPrompt()
-        if not args.quiet: print("\nPROMPT:\n" + prompt) # Print the prompt
+        if args.verbose: 
+            print(f"{str(datetime.datetime.now())} - Finished Building Prompt")
+            print(f"\nPrompt: {prompt}")
 
         # Submit the prompt for completion and print the completion
+        if args.verbose: print(f"{str(datetime.datetime.now())} - Submitting Prompt for Completion")
         completion=json.loads(submitPrompt(prompt))
-        if not args.quiet: print("\nCOMPLETION:\n" + json.dumps(completion, indent=4)) # Print the completion
+        if args.verbose:
+            print(f"{str(datetime.datetime.now())} - Completion Received")
+            print("COMPLETION:\n" + json.dumps(completion, indent=4)) # Print the completion
 
         # Save the media object if dry run mode is not enabled
         if not args.dryrun:
+            if args.verbose: print(f"{str(datetime.datetime.now())} - Saving {completion["title"]}, {completion["id"]}")
             saveCompletion(completion)
-            if not args.quiet: print("\nSAVED:" + completion["title"] + ", " + completion["id"]) # Print the saved object
+            if args.verbose: print(f"{str(datetime.datetime.now())} - Saved {completion["title"]}, {completion["id"]}")
 
         i+=1
 
-    print("\nMedia objects generated: " + str(generate_count))
+    print(f"{str(datetime.datetime.now())} - Finsished creating {str(generate_count)} media object(s)")
 
 load_dotenv()
 working_dir=os.getcwd()
 templates_base=working_dir + "/library-management/templates/"
+
+# For command line arguments
+parser = argparse.ArgumentParser(description="Provide various run commands.")
+# Argument for the count of media objects to generate
+parser.add_argument("-c", "--count", help="Number of media objects to generate")
+# Argument for the dry run, to generate a response without saving it to a file
+parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, generate a response without saving it to a file")
+# Argument for verbose mode, to display object outputs
+parser.add_argument("-v", "--verbose", action='store_true', help="Show details of steps and outputs like prompts and completions")
+args = parser.parse_args()
+
+#Print a timestamp for the start of the script
+print(f"{str(datetime.datetime.now())} - Starting Generation of {parser.parse_args().count} media objects")
 
 if __name__ == "__main__":
     main()

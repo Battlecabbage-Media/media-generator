@@ -1,6 +1,7 @@
 .env
 outputs/media/objects/*.json
 outputs/media/flagged/*.json
+outputs/media/flagged/*.jpg
 outputs/media/images/*.jpg
 !outputs/media/images/movie_poster.jpg
 outputs/media/images/*.png

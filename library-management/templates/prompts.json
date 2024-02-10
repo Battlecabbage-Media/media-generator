@@ -1,6 +1,7 @@
 {
     "prompts_start": [
-        "Create a {tones} title, short {tones} tagline, and description teaser of a MPAA {ratings} rated movie"
+        "Create a simple and {tones} title, short and simple {tones} tagline, and description teaser of a MPAA {ratings} rated movie",
+        "Create a title, tagline, and {tones} description teaser of a MPAA {ratings} rated movie"
     ],
     "prompts_main": [
         "that is a {types} {genres} starring a {roles} and a {roles} participating in a {tropes}.",
@@ -11,6 +12,6 @@
         "make the character names of {origins} origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
     ],
     "prompts_image":[
-        "Using the provided movie title, tagline, MPAA rating and description, provide a short image prompt that is not explicit or graph which will be used to generate a movie poster image as image_prompt. Keep the image_prompt as one string. Output results as json. Suggest a windows default ttf font that would work well with the image style as font."
+        "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Output results as json."
     ]
 }
