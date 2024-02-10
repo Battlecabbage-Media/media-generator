@@ -225,7 +225,7 @@ def processImage(completion, media_object):
 
         w = font.getlength(text)
         w_placement=(W-w)/2
-        draw.text((w_placement, H - 150), text, font=font, stroke_width=2, stroke_fill='black') # put the text on the image
+        draw.text((w_placement, H - 150), text, font=font, stroke_width=1, stroke_fill='black') # put the text on the image
 
         img = img.resize((724, 1267))
         img = img.convert('RGB')
@@ -302,7 +302,7 @@ parser.add_argument("-v", "--verbose", action='store_true', help="Show object ou
 parser.add_argument("-s", "--single", action='store_true', help="Only process a single image, for testing purposes")
 args = parser.parse_args()
 
-print(f"{str(datetime.datetime.now())} - Starting Image generation of all media object missing posters")
+print(f"{str(datetime.datetime.now())} - Starting Image generation for missing Posters.")
 
 # Run the main loop
 main()

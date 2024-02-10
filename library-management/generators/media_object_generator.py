@@ -15,33 +15,6 @@ import datetime
 # TODO
 # 1. Checks for failures and move forward. If a failure occurs, log the prompt and response to a file for review
 
-class MediaObject:
-    def __init__(self, title, description, url):
-        self.id = None
-        self.title = None
-        self.tagline = None
-        self.rating = None
-        self.rating_content = None
-        self.critic_score = None
-        self.critic_review = None
-        self.popularity_score = None
-        self.popularity_reason = None
-        self.theme = None
-        self.description = None
-        self.prompt = None
-        self.image_prompt = None
-        self.poster_url = "movie_poster.jpg"
-        self.cast = [
-            {
-                "role_one": None,
-                "role_two": None,
-                "director": None
-            }
-        ]
-        self.aoai_deployment = None
-
-    def to_json(self):
-        return json.dumps(self.__dict__)
 
 # Simply grabs a random value from the template file provided
 def getTemplateValue(template):
@@ -49,30 +22,38 @@ def getTemplateValue(template):
         return random.choice(json.load(json_file)[template])
 
 # Parses the prompt template and replaces the values with the random values from the template file
-def parseTemplate(template):
+def parseTemplate(template, prompt_list):
+
     start_index = template.find("{")
     while start_index != -1:
         end_index = template.find("}")
         text = template[start_index+1:end_index]
-        template = template.replace("{"+text+"}", getTemplateValue(text),1)
+        replace_value=getTemplateValue(text)
+        template = template.replace("{"+text+"}", replace_value,1)
+        if text not in prompt_list:
+            prompt_list[text] = []
+        prompt_list[text].append(replace_value)
         start_index = template.find("{")
-    return template
+    return template, prompt_list
 
 # Builds the prompt from the prompt template selected
 def buildPrompt():
 
+    prompt_list={}
     with open(templates_base + "prompts.json") as json_file:
 
         # Load the prompt template file and parse the prompt template
         prompt_json=json.load(json_file)
-        prompt_start=parseTemplate(random.choice(prompt_json["prompts_start"]))
-        prompt_main=parseTemplate(random.choice(prompt_json["prompts_main"]))
-        prompt_end=parseTemplate(random.choice(prompt_json["prompts_end"]))
-        prompt=prompt_start + " " + prompt_main + " " + prompt_end
-        return prompt
+        prompt_start, prompt_list=parseTemplate(random.choice(prompt_json["prompts_start"]), prompt_list)
+        prompt_cast, prompt_list=parseTemplate(random.choice(prompt_json["prompts_cast"]), prompt_list)
+        prompt_synopsis, prompt_list=parseTemplate(random.choice(prompt_json["prompts_synopsis"]), prompt_list)
+        prompt_end, prompt_list=parseTemplate(random.choice(prompt_json["prompts_end"]), prompt_list)
+        prompt=f"{prompt_start} {prompt_cast} {prompt_synopsis} {prompt_end}"
+
+        return prompt, prompt_list
 
 # Submits the prompt to the API and returns the response as a formatted json object
-def submitPrompt(prompt):
+def submitPrompt(prompt, prompt_list):
 
     # Create the AzureOpenAI client
     client = AzureOpenAI(
@@ -111,13 +92,14 @@ def submitPrompt(prompt):
             "popularity_score":round(random.uniform(1, 10), 1),
             "genre":completion["genre"],
             "description":completion["description"],
-            "prompt":prompt,
             "poster_url":"movie_poster_url.jpeg",
-            "aoai_deployment":deployment_name
         }
     
-    return json.dumps(media_object)
+    media_object["prompt"]=prompt
+    media_object["prompt_list"]=prompt_list
+    media_object["aoai_deployment"]=deployment_name
 
+    return json.dumps(media_object)
 
 # Saves the media object to a file based upon ID hash 
 def saveCompletion(media_object):
@@ -152,14 +134,15 @@ def main():
 
         # Build the prompt and print it
         if args.verbose: print(f"{str(datetime.datetime.now())} - Building Prompt")
-        prompt=buildPrompt()
+        prompt, prompt_list=buildPrompt()
         if args.verbose: 
             print(f"{str(datetime.datetime.now())} - Finished Building Prompt")
-            print(f"\nPrompt: {prompt}")
+            print(f"PROMP:\n {prompt}")
+            print(f"TEMPLATE LIST:\n {json.dumps(prompt_list, indent=4)}")
 
         # Submit the prompt for completion and print the completion
         if args.verbose: print(f"{str(datetime.datetime.now())} - Submitting Prompt for Completion")
-        completion=json.loads(submitPrompt(prompt))
+        completion=json.loads(submitPrompt(prompt, prompt_list))
         if args.verbose:
             print(f"{str(datetime.datetime.now())} - Completion Received")
             print("COMPLETION:\n" + json.dumps(completion, indent=4)) # Print the completion
@@ -168,11 +151,11 @@ def main():
         if not args.dryrun:
             if args.verbose: print(f"{str(datetime.datetime.now())} - Saving {completion["title"]}, {completion["id"]}")
             saveCompletion(completion)
-            if args.verbose: print(f"{str(datetime.datetime.now())} - Saved {completion["title"]}, {completion["id"]}")
+            print(f"{str(datetime.datetime.now())} - Saved {completion["title"]}, {completion["id"]}")
 
         i+=1
 
-    print(f"{str(datetime.datetime.now())} - Finsished creating {str(generate_count)} media object(s)")
+    print(f"{str(datetime.datetime.now())} - Finsished generating {str(generate_count)} media object(s)")
 
 load_dotenv()
 working_dir=os.getcwd()
@@ -187,9 +170,6 @@ parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, genera
 # Argument for verbose mode, to display object outputs
 parser.add_argument("-v", "--verbose", action='store_true', help="Show details of steps and outputs like prompts and completions")
 args = parser.parse_args()
-
-#Print a timestamp for the start of the script
-print(f"{str(datetime.datetime.now())} - Starting Generation of {parser.parse_args().count} media objects")
 
 if __name__ == "__main__":
     main()

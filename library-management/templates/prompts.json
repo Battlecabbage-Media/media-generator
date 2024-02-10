@@ -1,12 +1,18 @@
 {
     "prompts_start": [
-        "Create a simple and {tones} title, short and simple {tones} tagline, and description teaser of a MPAA {ratings} rated movie",
-        "Create a title, tagline, and {tones} description teaser of a MPAA {ratings} rated movie"
+        "Create a simple and {tones} title, short and simple {tones} tagline, and description teaser of a MPAA {ratings} rated movie.",
+        "Create a title, tagline, and {tones} description teaser of a MPAA {ratings} rated movie."
     ],
-    "prompts_main": [
-        "that is a {types} {genres} starring a {roles} and a {roles} participating in a {tropes}.",
-        "starring a {roles} at {locations} in {types} {genres} with a {tropes}",
-        "that is located at {locations} of a {genres} {types} film where {roles} and {roles} are the main characters. The movie is about a {tropes} during {eras}."
+    "prompts_cast": [
+        "Starring {actors} and {actors} as the main characters. Directed by {directors}.",
+        "The movie stars {actors} and award winning {actors} as the main characters. The movie also stars {actors} and {actors} as the supporting characters. Directed by {directors}.",
+        "The movie stars {actors} and is Directed by {directors}.",
+        "Directed by award winning {directors}, the movie stars {actors} in their debut role."
+    ],
+    "prompts_synopsis": [
+        "A {types} {genres} including a {roles} and a {roles} participating in a {tropes}.",
+        "A {roles} at {locations} in {types} {genres} with a {tropes}",
+        "Located at {locations} of a {genres} {types} film where {roles} and {roles} are the main characters. The movie is about a {tropes} during {eras}."
     ],
     "prompts_end": [
         "make the character names of {origins} origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
