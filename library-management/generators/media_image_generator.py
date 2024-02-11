@@ -27,6 +27,7 @@ load_dotenv()
 # 6. Format the font to have better readability. Maybe on complimentary color, outlines, etc.
 # 7. Proper checks if certain values came back from completion, example critic_score
 # 8. Check for letterbox image and regenerate, Cameron?
+# 9. Fix lq flag to work properly, keeps failing size, I blame Dalle3, works with 1024x1024 not 512x512
 
 
 # Check if the image has already been generated
@@ -134,13 +135,14 @@ def generateImage(file_path, image_prompt, media_object):
                 model=os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME"), # the name of your DALL-E 3 deployment
                 prompt=image_prompt["image_prompt"],
                 n=1,
-                size='1024x1792'
+                size="1024x1024" if args.low_quality else "1024x1792"
             )
             break
-        except:
+        except Exception as e:
             print(f"{str(datetime.datetime.now())} - Attempt {attempt+1} of {i_range} failed to generate image for {media_object['title']}, ID: {media_object['id']}.")
+            print(f"Error: {e}")
     else:
-        return False
+        return False, "FAILED"
 
     # Grab the first image from the response
     json_response = json.loads(result.model_dump_json())
@@ -156,11 +158,11 @@ def generateImage(file_path, image_prompt, media_object):
     try:
         with open(file_path, "wb") as image_file:
             image_file.write(generated_image)
+            return True, file_path
     except:
         print(f"Error saving image {media_object['id']}.png")
         return False, "FAILED"
     
-    return True, file_path
 
 # Add various text to the image and resize
 def processImage(completion, media_object, image_path):
@@ -196,76 +198,146 @@ def processImage(completion, media_object, image_path):
     # Open an image file for manipulation
     with Image.open(image_path) as img:
         
-        #https://stackoverflow.com/questions/4902198/pil-how-to-scale-text-size-in-relation-to-the-size-of-the-image
-        W, H = img.size
+        img_w, img_h = img.size
 
         draw = ImageDraw.Draw(img)
 
-        text = media_object["title"]
+        img = writeText(
+            media_object["title"],
+            ":",
+            0.96,
+            font_path,
+            img_w,
+            1,
+            25,
+            20, 
+            2,
+            img
+        )
 
-        fontsize = 1  # starting font size
+        # Write Tagline, this is currently multi-line friendly
+        img = writeText(
+            media_object["tagline"],
+            ",",
+            0.80,
+            font_path,
+            img_w,
+            7,
+            img_h - 280,
+            30,
+            1,
+            img
+        )
 
-        # portion of image width you want text width to be
-        img_fraction = 0.95
+        if not args.low_quality:
+            img = img.resize((724, 1267))
+            img = img.convert('RGB')
+            img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=70)
+            #Delete the original png file
+            os.remove(image_path)
+        else:
+            img.save(image_path, 'PNG')
 
+    return True
+
+# TODO rewrite this later to take in a list of options from a template file, not all current options  would be in template.
+# TODO calculate the offset by number of lines. Likely have to pass in image height and just the offset, not calculated version.
+def writeText(
+        text_string, # The text to write
+        delimiter, # The delimiter to split the text on
+        img_fraction, # The fraction of the image width the text should take up
+        font_path, # The path to the font file
+        img_w, # The width of the image
+        decrement, # The amount to decrement the font size by
+        placement_offset, # Where to start from top of image
+        line_padding, # The amount of padding between lines
+        stroke_width, # The width of the stroke
+        img # The draw object
+    ):
+    
+    draw = ImageDraw.Draw(img)
+
+    # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
+    text_list = text_string.split(delimiter)
+    max_text = max(text_list, key=len)
+    text_list[0] += delimiter
+
+    fontsize = 1  # starting font size
+    font = ImageFont.truetype(font_path, fontsize)
+
+    # Find  font size to fit the text based upon fraction of the image width and biggest string section
+    while font.getlength(max_text) < img_fraction*img_w:
+        # iterate until the text size is just larger than the criteria
+        fontsize += 1
         font = ImageFont.truetype(font_path, fontsize)
-      
-        while font.getlength(text) < img_fraction*W:
-            # iterate until the text size is just larger than the criteria
-            fontsize += 1
-            font = ImageFont.truetype(font_path, fontsize)
+    
+    # Decrement to be sure it is less than criteria and styled
+    fontsize -= decrement
+    font = ImageFont.truetype(font_path, fontsize)
+    #placement_w = font.getlength(max_text)
 
-        # optionally de-increment to be sure it is less than criteria
-        fontsize -= 1
-        font = ImageFont.truetype(font_path, fontsize)
+    #return font, placement_w
+
+    # TODO FIGURE OUT THE HORIZONTAL PLACEMENT ON BOTTOM TEXT
+    # text_count = 1
+    # for text_line in text_list:
+    #     print(text_line)
+    #     # remove proceeding and trailing spaces
+    #     text_line = text_line.strip()
+    #     w = font.getlength(text_line)
+    #     w_placement=(img_w-w)/2
+    #     # Get the font's ascent and descent
+    #     ascent, descent = font.getmetrics()
+    #     # The height of the font is the sum of its ascent and descent
+    #     font_height = ascent + descent
+    #     if text_count == 1:
+    #         h_placement = placement_offset
+    #     else:
+    #         h_placement = placement_offset + ((font_height + 10) * text_count)
+    #     draw.text((w_placement, h_placement), text_line, font=font, stroke_width=stroke_width, stroke_fill='black') # put the text on the image
         
-        w = font.getlength(text)
-        w_placement=(W-w)/2
-        draw.text((w_placement, 50), text, font=font, stroke_width=2, stroke_fill='black') # put the text on the image
+    #     text_count += 1
 
-
-        draw = ImageDraw.Draw(img)
-        text = media_object["tagline"]
-        fontsize = 1  # starting font size
-
-        # portion of image width you want text width to be
-        img_fraction = 0.90
-
-        font = ImageFont.truetype(font_path, fontsize)
-        while font.getlength(text) < img_fraction*W:
-            # iterate until the text size is just larger than the criteria
-            fontsize += 1
-            font = ImageFont.truetype(font_path, fontsize)
-
-        # optionally de-increment to be sure it is less than criteria
-        fontsize -= 3
-        font = ImageFont.truetype(font_path, fontsize)
-
-        w = font.getlength(text)
-        w_placement=(W-w)/2
-        draw.text((w_placement, H - 150), text, font=font, stroke_width=1, stroke_fill='black') # put the text on the image
-
-        img = img.resize((724, 1267))
-        img = img.convert('RGB')
-        img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=40)
-
-    #Delete the original png file
-    os.remove(image_path)
-
-
-def formatText(text, type, img):
-    print("here")
-
+    w = font.getlength(max_text)
+    w_placement=(img_w-w)/2
+    text_count = 1
+    for text_line in text_list:
+        #print(text_line)
+        # remove proceeding and trailing spaces
+        text_line = text_line.strip()
+        # w = font.getlength(text_line)
+        # w_placement=(img_w-w)/2
+        # Get the font's ascent and descent
+        ascent, descent = font.getmetrics()
+        # The height of the font is the sum of its ascent and descent
+        font_height = ascent - descent
+        # print(f"Ascent: {ascent}, Descent: {descent}")
+        # print (f"Font Height: {font_height}")
+        y_placement = placement_offset + ((font_height) * (text_count - 1))
+        if text_count > 1:
+            y_placement = y_placement + (line_padding * (text_count - 1))
+        # if text_count == 1:
+        #     y_placement = placement_offset
+        # elif text_count == 2:
+        #     y_placement = placement_offset + ((font_height) * text_count)
+        print(f"Text: {text_line}, Line: {text_count}, Font Height:, {font_height}  Y Placement: {y_placement}, Start Offset: {placement_offset}")
+        draw.text((w_placement, y_placement), text_line, font=font, stroke_width=stroke_width, stroke_fill='black') # put the text on the image
+        
+        text_count += 1
+    
+    # print("here")
+    # exit()
+    return img
 
 def main():
 
     processed_count=0
     created_count=0
 
-    for root, dirs, files in os.walk(objects_directory):
-        for filename in files:
-            # Full path to the file
-            file_path = os.path.join(root, filename)
+    # for root, dirs, files in os.walk(objects_directory):
+    #     for filename in files:
+    #         # Full path to the file
+    #         file_path = os.path.join(root, filename)
 
     # Get list of all media objects missing a poster, and orphaned png posters files    
     missing_list, png_list = imageBuildList(os.getcwd() + "/outputs/media/generated/")
@@ -326,6 +398,7 @@ parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, genera
 # Argument for verbose mode, to display object outputs
 parser.add_argument("-v", "--verbose", action='store_true', help="Show object outputs like prompts and completions")
 parser.add_argument("-s", "--single", action='store_true', help="Only process a single image, for testing purposes")
+parser.add_argument("-lq", "--low_quality", action='store_true', help="Create low quality images for testing.")
 args = parser.parse_args()
 
 
