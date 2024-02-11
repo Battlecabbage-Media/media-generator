@@ -36,6 +36,28 @@ def checkImage(images_directory,image_id):
     else:
         return False
 
+def imageBuildList(media_directory):
+
+    json_files = []
+    jpg_files = []
+    png_files = []
+    # Iterate over all subdirectories in main generated media directory
+    for root, dirs, files in os.walk(media_directory):
+        json_files += [os.path.join(root, f) for f in files if f.endswith('.json')]
+        jpg_files += [os.path.join(root, f) for f in files if f.endswith('.jpg')]
+        png_files += [os.path.join(root, f) for f in files if f.endswith('.png')]
+
+    # Check if there is a .jpg file that matches the same name as a .json file
+    missing_images = []
+    for json_file in json_files:
+        # Remove the file extension to get the base name
+        base_name = os.path.splitext(json_file)[0]
+        if base_name + '.jpg' not in jpg_files:
+            #missing_images.append(f"{root}/{base_name}.json")
+            missing_images.append(f"{base_name}.json")
+    
+    return missing_images, png_files      
+
 
 # Generate the prompt for the image based upon the media object info
 def generateImagePrompt(media_object):
@@ -47,12 +69,6 @@ def generateImagePrompt(media_object):
         azure_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
     )
     deployment_name=os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
-    
-    # # Open the fonts.json and get all the names as a list
-    # with open(templates_base + "fonts.json") as fonts:
-    #     data = json.load(fonts)
-    #     font_names = [item for item in data]
-    #     font_names = " ".join(font_names)
     
     # Get a list of all font files
     font_files = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
@@ -103,7 +119,7 @@ def generateImagePrompt(media_object):
     
 
 # Generate the image using the prompt
-def generateImage(image_prompt, media_object):
+def generateImage(file_path, image_prompt, media_object):
 
     client = AzureOpenAI(
         api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
@@ -129,25 +145,27 @@ def generateImage(image_prompt, media_object):
     # Grab the first image from the response
     json_response = json.loads(result.model_dump_json())
 
-    # If the directory doesn't exist, create it
-    if not os.path.isdir(images_directory):
-        os.mkdir(images_directory)
-
     # Initialize the image path (note the filetype should be png)
-    image_path = os.path.join(images_directory, media_object["id"] +'.png')
+    #image_path = os.path.join(images_directory, media_object["id"] +'.png')
 
     # Retrieve the generated image and save it to the images directory
     image_url = json_response["data"][0]["url"]  # extract image URL from response
     generated_image = requests.get(image_url).content  # download the image
-    with open(image_path, "wb") as image_file:
-        image_file.write(generated_image)
-
-    return True
+    
+    file_path=file_path.replace('.json','.png')
+    try:
+        with open(file_path, "wb") as image_file:
+            image_file.write(generated_image)
+    except:
+        print(f"Error saving image {media_object['id']}.png")
+        return False, "FAILED"
+    
+    return True, file_path
 
 # Add various text to the image and resize
-def processImage(completion, media_object):
+def processImage(completion, media_object, image_path):
 
-    image=images_directory + "/" + media_object["id"] + ".png"
+    #image=images_directory + "/" + media_object["id"] + ".png"
 
     # Get a list of all font files
     font_files = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
@@ -176,7 +194,7 @@ def processImage(completion, media_object):
         font_path="arial.ttf"
 
     # Open an image file for manipulation
-    with Image.open(image) as img:
+    with Image.open(image_path) as img:
         
         #https://stackoverflow.com/questions/4902198/pil-how-to-scale-text-size-in-relation-to-the-size-of-the-image
         W, H = img.size
@@ -229,10 +247,10 @@ def processImage(completion, media_object):
 
         img = img.resize((724, 1267))
         img = img.convert('RGB')
-        img.save(image.replace('png', 'jpg'), 'JPEG', quality=40)
+        img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=40)
 
     #Delete the original png file
-    os.remove(image)
+    os.remove(image_path)
 
 
 def formatText(text, type, img):
@@ -243,53 +261,61 @@ def main():
 
     processed_count=0
     created_count=0
-    # Find the first JSON file (media object)
-    for filename in os.listdir(objects_directory):
 
-        if filename.endswith('.json'):
+    for root, dirs, files in os.walk(objects_directory):
+        for filename in files:
+            # Full path to the file
+            file_path = os.path.join(root, filename)
+
+    # Get list of all media objects missing a poster, and orphaned png posters files    
+    missing_list, png_list = imageBuildList(os.getcwd() + "/outputs/media/generated/")
+
+    if len(png_list) > 0:
+        print(f"{str(datetime.datetime.now())} - Orphaned PNG files found, quick housekeeping.")
+        for png_file in png_list:
+            os.remove(png_file)
+
+    missing_count = len(missing_list)
+
+    if missing_count > 0:
+        print(f"{str(datetime.datetime.now())} - Starting Media Image generation, Total Missing: {missing_count}")
+        for filepath in missing_list:
 
             if args.single and processed_count > 0: 
                 print(f"{str(datetime.datetime.now())} - Single image processing mode enabled, skipping additional media objects.")
                 exit()
 
-            filepath = os.path.join(objects_directory, filename)
             with open(filepath, 'r') as file:
                 media_object = json.load(file)
-                
-                print(f"{str(datetime.datetime.now())} - Processing media object {filename}")
-
-                # Check if the image has already been generated or exists based upon id
-                result = checkImage(images_directory, media_object["id"])
-                if result == True:        
-                    if args.verbose: print(f"{str(datetime.datetime.now())} - Image already exists for {media_object['title']}, ID: {media_object['id']}, skipping.")
-                else:
-                    if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image Prompt for {media_object["title"]}, ID: {media_object["id"]}")
-                    completion=generateImagePrompt(media_object)
-                    if args.verbose: print(f"{str(datetime.datetime.now())} - Image Prompt Generated for {media_object["title"]}, ID: {media_object["id"]} \nImage Prompt:\n{completion["image_prompt"]}")
-                                                          
-                    if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image for {media_object["title"]}, ID: {media_object["id"]}")
-                    result = generateImage(completion, media_object)
-                    if result == True:
-                        processImage(completion, media_object)
-                        if args.verbose: print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]} \nLocation: {str(images_directory)}{media_object["id"]}.jpg")
-                        created_count+=1
-                    else:
-                        if args.verbose: print(f"{str(datetime.datetime.now())} - Failed to generate image for {media_object["title"]} ID: {media_object["id"]}")
                     
-                    processed_count+=1
-    else:
+                if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image Prompt for {media_object["title"]}, ID: {media_object["id"]}")
+                completion=generateImagePrompt(media_object)
+                if args.verbose: print(f"{str(datetime.datetime.now())} - Image Prompt Generated for {media_object["title"]}, ID: {media_object["id"]} \nImage Prompt:\n{completion["image_prompt"]}")
+                                                    
+                if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image for {media_object["title"]}, ID: {media_object["id"]}")
+                result, image_path = generateImage(filepath, completion, media_object)
+                if result == True:
+                    processImage(completion, media_object, image_path)
+                    print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]} \nLocation: {str(image_path.replace('.png','.jpg'))}")
+                    created_count+=1
+                else:
+                    print(f"{str(datetime.datetime.now())} - Failed to generate image for {media_object["title"]} ID: {media_object["id"]}")
+                
+                processed_count+=1
         message = f"{str(datetime.datetime.now())} - All media objects reviewed."
         if processed_count > 0: 
-            message += f" Processed Count: {str(processed_count)}, Create Count: {str(created_count)}"
+            message += f" Image Create Count: {str(created_count)}, Processed Count: {str(processed_count)}"
+            print(message)
+    else:
+        print(f"{str(datetime.datetime.now())} - No media objects missing images.")
 
-        print(message)
-        exit()
 
 load_dotenv()
 working_dir=os.getcwd()
 objects_directory = working_dir + "/outputs/media/objects/"
 images_directory = working_dir + "/outputs/media/images/"
 templates_base = working_dir + "/library-management/templates/"
+outputs_dir = "outputs/media/"
 
 # For command line arguments
 parser = argparse.ArgumentParser(description="Provide various run commands.")
@@ -302,7 +328,9 @@ parser.add_argument("-v", "--verbose", action='store_true', help="Show object ou
 parser.add_argument("-s", "--single", action='store_true', help="Only process a single image, for testing purposes")
 args = parser.parse_args()
 
-print(f"{str(datetime.datetime.now())} - Starting Image generation for missing Posters.")
 
+
+
+imageBuildList(os.getcwd() + "/outputs/media/generated/")
 # Run the main loop
 main()

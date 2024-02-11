@@ -8,6 +8,7 @@ import sys
 import argparse
 import datetime
 
+
 # REQUIREMENTS
 # pip install python-dotenv
 # pip install openai
@@ -104,10 +105,30 @@ def submitPrompt(prompt, prompt_list):
 # Saves the media object to a file based upon ID hash 
 def saveCompletion(media_object):
 
-    # TODO add error handling for failed file writes
-    with open(working_dir + "/outputs/media/objects/"+media_object["id"]+".json", "a") as json_file:
-        json.dump(media_object, json_file)
-        json_file.write("\n")
+    now = datetime.datetime.now()
+    base_dir=os.path.join(os.getcwd(),outputs_dir)
+    date_depth="%Y/%m/%d"#/%H/%M/%S"
+
+    # Format the date and time
+    folder_path = os.path.join(base_dir, now.strftime(date_depth))
+    # Create the folders
+    try:
+        os.makedirs(folder_path, exist_ok=True)
+    except:
+        print(f"Error creating date folders for media object {media_object['id']}.")
+        return False
+
+    file_path = os.path.join(base_dir, now.strftime(date_depth), f"{media_object["id"]}.json")
+    
+    try:
+        with open(file_path, "w") as json_file:
+            json.dump(media_object, json_file)
+            json_file.write("\n")
+            return True
+    except Exception as e:
+        print(f"Error saving media object {media_object['id']}.\n{e}")
+        return False
+
 
 # Main function to run the generator
 def main():
@@ -137,7 +158,7 @@ def main():
         prompt, prompt_list=buildPrompt()
         if args.verbose: 
             print(f"{str(datetime.datetime.now())} - Finished Building Prompt")
-            print(f"PROMP:\n {prompt}")
+            print(f"PROMPT:\n {prompt}")
             print(f"TEMPLATE LIST:\n {json.dumps(prompt_list, indent=4)}")
 
         # Submit the prompt for completion and print the completion
@@ -151,7 +172,7 @@ def main():
         if not args.dryrun:
             if args.verbose: print(f"{str(datetime.datetime.now())} - Saving {completion["title"]}, {completion["id"]}")
             saveCompletion(completion)
-            print(f"{str(datetime.datetime.now())} - Saved {completion["title"]}, {completion["id"]}")
+            print(f"{str(datetime.datetime.now())} - SAVED - {completion["title"]}, {completion["id"]}")
 
         i+=1
 
@@ -160,6 +181,7 @@ def main():
 load_dotenv()
 working_dir=os.getcwd()
 templates_base=working_dir + "/library-management/templates/"
+outputs_dir="outputs/media/generated/"
 
 # For command line arguments
 parser = argparse.ArgumentParser(description="Provide various run commands.")
