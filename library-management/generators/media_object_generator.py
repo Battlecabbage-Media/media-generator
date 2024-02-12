@@ -98,7 +98,9 @@ def submitPrompt(prompt, prompt_list):
     
     media_object["prompt"]=prompt
     media_object["prompt_list"]=prompt_list
-    media_object["aoai_deployment"]=deployment_name
+    media_object["azure_openai_text_completion_endpoint"]=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
+    media_object["azure_openai_text_completion_deployment_name"]=deployment_name
+    media_object["azure_openai_text_completion_api_version"]=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION")
 
     return json.dumps(media_object)
 

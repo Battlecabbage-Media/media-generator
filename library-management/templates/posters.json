@@ -1,0 +1,102 @@
+{
+    "layouts": [
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 1,
+                    "y_placement": "top",
+                    "line_padding": 20,
+                    "stroke_width": 2
+                }
+            ],
+            "tagline": [
+                {
+                    "delimiter": ",",
+                    "scale": 0.75,
+                    "decrement": 7,
+                    "y_placement": "bottom",
+                    "line_padding": 28,
+                    "stroke_width": 1
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 1,
+                    "y_placement": "middle",
+                    "line_padding": 20,
+                    "stroke_width": 2
+                }
+            ],
+            "tagline": [
+                {
+                    "delimiter": ",",
+                    "scale": 0.80,
+                    "decrement": 7,
+                    "y_placement": "top",
+                    "line_padding": 30,
+                    "stroke_width": 1
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 1,
+                    "y_placement": "middle",
+                    "line_padding": 20,
+                    "stroke_width": 2
+                }
+            ],
+            "tagline": [
+                {
+                    "delimiter": ",",
+                    "scale": 0.80,
+                    "decrement": 7,
+                    "y_placement": "top",
+                    "line_padding": 30,
+                    "stroke_width": 1
+                }
+            ],
+            "cast": [
+                {
+                    "delimiter": ",",
+                    "scale": 0.90,
+                    "decrement": 7,
+                    "y_placement": "bottom",
+                    "line_padding": 30,
+                    "stroke_width": 1
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 1,
+                    "y_placement": "bottom",
+                    "line_padding": 20,
+                    "stroke_width": 2
+                }
+            ],
+            "tagline": [
+                {
+                    "delimiter": ",",
+                    "scale": 0.85,
+                    "decrement": 6,
+                    "y_placement": "middle",
+                    "line_padding": 30,
+                    "stroke_width": 1
+                }
+            ]
+        }
+    ]
+}

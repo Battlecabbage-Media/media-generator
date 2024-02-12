@@ -22,7 +22,6 @@ load_dotenv()
 # TODO:
 # 2. Implement the ability to generate a response without saving it to a file, dry run
 # 3. Implement checks for failures and move forward. If a failure occurs, log the prompt and response to a file for review, potenitally retrying the prompt a few times before moving on.
-# 4. Ability to break up text into multine and format it for the poster.
 # 5. Ability to add a logo to the poster like the rating
 # 6. Format the font to have better readability. Maybe on complimentary color, outlines, etc.
 # 7. Proper checks if certain values came back from completion, example critic_score
@@ -37,6 +36,8 @@ def checkImage(images_directory,image_id):
     else:
         return False
 
+
+# Find all media objects that dont have an associated .jpg image file
 def imageBuildList(media_directory):
 
     json_files = []
@@ -147,9 +148,6 @@ def generateImage(file_path, image_prompt, media_object):
     # Grab the first image from the response
     json_response = json.loads(result.model_dump_json())
 
-    # Initialize the image path (note the filetype should be png)
-    #image_path = os.path.join(images_directory, media_object["id"] +'.png')
-
     # Retrieve the generated image and save it to the images directory
     image_url = json_response["data"][0]["url"]  # extract image URL from response
     generated_image = requests.get(image_url).content  # download the image
@@ -166,8 +164,6 @@ def generateImage(file_path, image_prompt, media_object):
 
 # Add various text to the image and resize
 def processImage(completion, media_object, image_path):
-
-    #image=images_directory + "/" + media_object["id"] + ".png"
 
     # Get a list of all font files
     font_files = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
@@ -200,35 +196,20 @@ def processImage(completion, media_object, image_path):
         
         img_w, img_h = img.size
 
-        draw = ImageDraw.Draw(img)
+        # Get a random layout from posters.json
+        with open(templates_base + "posters.json") as json_file:
+            poster_json=json.load(json_file)
+            poster_layout=random.choice(poster_json["layouts"])
 
-        img = writeText(
-            media_object["title"],
-            ":",
-            0.96,
-            font_path,
-            img_w,
-            1,
-            25,
-            20, 
-            2,
-            img
-        )
+        # loop through the layout and print out each key
+        for key in poster_layout:
+            text_string = media_object[key]
+            layout = poster_layout[key]
 
-        # Write Tagline, this is currently multi-line friendly
-        img = writeText(
-            media_object["tagline"],
-            ",",
-            0.80,
-            font_path,
-            img_w,
-            7,
-            img_h - 280,
-            30,
-            1,
-            img
-        )
+            #TODO maybe do some formatting for cast text if that is the layout key
+            writeText(img, img_w, img_h, text_string, layout[0], font_path)
 
+        # TODO rethink the qhole quality thing, if even needed.
         if not args.low_quality:
             img = img.resize((724, 1267))
             img = img.convert('RGB')
@@ -240,104 +221,68 @@ def processImage(completion, media_object, image_path):
 
     return True
 
-# TODO rewrite this later to take in a list of options from a template file, not all current options  would be in template.
-# TODO calculate the offset by number of lines. Likely have to pass in image height and just the offset, not calculated version.
-def writeText(
-        text_string, # The text to write
-        delimiter, # The delimiter to split the text on
-        img_fraction, # The fraction of the image width the text should take up
-        font_path, # The path to the font file
-        img_w, # The width of the image
-        decrement, # The amount to decrement the font size by
-        placement_offset, # Where to start from top of image
-        line_padding, # The amount of padding between lines
-        stroke_width, # The width of the stroke
-        img # The draw object
-    ):
+def writeText(img, img_w, img_h, text_string, layout, font_path): 
     
     draw = ImageDraw.Draw(img)
 
     # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
-    text_list = text_string.split(delimiter)
+    text_list = text_string.split(layout["delimiter"])
     max_text = max(text_list, key=len)
-    text_list[0] += delimiter
+    
+    # If the count of the delimiter in the string is 1 then add the delimtier back to the string
+    if text_string.count(layout["delimiter"]) == 1:
+        text_list[0] += layout["delimiter"]
 
     fontsize = 1  # starting font size
     font = ImageFont.truetype(font_path, fontsize)
 
     # Find  font size to fit the text based upon fraction of the image width and biggest string section
-    while font.getlength(max_text) < img_fraction*img_w:
+    while font.getlength(max_text) < layout["scale"]*img_w:
         # iterate until the text size is just larger than the criteria
         fontsize += 1
         font = ImageFont.truetype(font_path, fontsize)
     
     # Decrement to be sure it is less than criteria and styled
-    fontsize -= decrement
+    fontsize -= layout["decrement"]
     font = ImageFont.truetype(font_path, fontsize)
-    #placement_w = font.getlength(max_text)
 
-    #return font, placement_w
+    ascent, descent = font.getmetrics()
+    # The height of the font is the delta of its ascent and descent
+    font_height = ascent - descent
 
-    # TODO FIGURE OUT THE HORIZONTAL PLACEMENT ON BOTTOM TEXT
-    # text_count = 1
-    # for text_line in text_list:
-    #     print(text_line)
-    #     # remove proceeding and trailing spaces
-    #     text_line = text_line.strip()
-    #     w = font.getlength(text_line)
-    #     w_placement=(img_w-w)/2
-    #     # Get the font's ascent and descent
-    #     ascent, descent = font.getmetrics()
-    #     # The height of the font is the sum of its ascent and descent
-    #     font_height = ascent + descent
-    #     if text_count == 1:
-    #         h_placement = placement_offset
-    #     else:
-    #         h_placement = placement_offset + ((font_height + 10) * text_count)
-    #     draw.text((w_placement, h_placement), text_line, font=font, stroke_width=stroke_width, stroke_fill='black') # put the text on the image
-        
-    #     text_count += 1
+    section_top = 30 # Pad off the top of the image
+    section_middle = (img_h / 2) - (font_height * len(text_list) + (layout["line_padding"] * len(text_list))) # Center of the image but offset by font and line count
+    section_bottom = img_h - (img_h / 8) # bottom 1/8th of image
+    y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
 
     w = font.getlength(max_text)
     w_placement=(img_w-w)/2
+    # Get the font's ascent and descent
+
     text_count = 1
     for text_line in text_list:
-        #print(text_line)
+
         # remove proceeding and trailing spaces
         text_line = text_line.strip()
-        # w = font.getlength(text_line)
-        # w_placement=(img_w-w)/2
-        # Get the font's ascent and descent
-        ascent, descent = font.getmetrics()
-        # The height of the font is the sum of its ascent and descent
-        font_height = ascent - descent
-        # print(f"Ascent: {ascent}, Descent: {descent}")
-        # print (f"Font Height: {font_height}")
-        y_placement = placement_offset + ((font_height) * (text_count - 1))
+        
+        # Get the starting location for the text based upon the layout
+        y_start = y_placements[layout["y_placement"]]
+        
+        y_placement = y_start + ((font_height) * (text_count - 1))
         if text_count > 1:
-            y_placement = y_placement + (line_padding * (text_count - 1))
-        # if text_count == 1:
-        #     y_placement = placement_offset
-        # elif text_count == 2:
-        #     y_placement = placement_offset + ((font_height) * text_count)
-        print(f"Text: {text_line}, Line: {text_count}, Font Height:, {font_height}  Y Placement: {y_placement}, Start Offset: {placement_offset}")
-        draw.text((w_placement, y_placement), text_line, font=font, stroke_width=stroke_width, stroke_fill='black') # put the text on the image
+            y_placement = y_placement + (layout["line_padding"] * (text_count - 1))
+
+        print(f"Text: {text_line}, Line: {text_count}, Font Height:, {font_height}  Y Placement: {y_placement}, Start Offset: {y_start}")
+        draw.text((w_placement, y_placement), text_line, font=font, stroke_width=layout["stroke_width"], stroke_fill='black') # put the text on the image
         
         text_count += 1
-    
-    # print("here")
-    # exit()
+
     return img
 
 def main():
 
     processed_count=0
     created_count=0
-
-    # for root, dirs, files in os.walk(objects_directory):
-    #     for filename in files:
-    #         # Full path to the file
-    #         file_path = os.path.join(root, filename)
 
     # Get list of all media objects missing a poster, and orphaned png posters files    
     missing_list, png_list = imageBuildList(os.getcwd() + "/outputs/media/generated/")
@@ -369,11 +314,24 @@ def main():
                 if result == True:
                     processImage(completion, media_object, image_path)
                     print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]} \nLocation: {str(image_path.replace('.png','.jpg'))}")
+                    
+                    # Save image completion and image generate date to media object file
+                    with open(filepath, 'w') as updated_file:
+                        media_object["image_generation_time"] = str(datetime.datetime.now())
+                        media_object["image_prompt"] = completion["image_prompt"].replace("'", "\"")
+                        media_object["azure_openai_image_model_endpoint"] = os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
+                        media_object["azure_openai_image_model_deployment"] = os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME")
+                        media_object["azure_openai_image_model_api_version"] = os.getenv("AZURE_OPENAI_DALLE3_API_VERSION")
+                        file.seek(0)
+                        json.dump(media_object, updated_file, indent=4)
+
                     created_count+=1
                 else:
                     print(f"{str(datetime.datetime.now())} - Failed to generate image for {media_object["title"]} ID: {media_object["id"]}")
                 
                 processed_count+=1
+                print(f"{str(datetime.datetime.now())} - Media Object Processed: {str(processed_count)} of {str(missing_count)}")
+                
         message = f"{str(datetime.datetime.now())} - All media objects reviewed."
         if processed_count > 0: 
             message += f" Image Create Count: {str(created_count)}, Processed Count: {str(processed_count)}"
@@ -400,8 +358,6 @@ parser.add_argument("-v", "--verbose", action='store_true', help="Show object ou
 parser.add_argument("-s", "--single", action='store_true', help="Only process a single image, for testing purposes")
 parser.add_argument("-lq", "--low_quality", action='store_true', help="Create low quality images for testing.")
 args = parser.parse_args()
-
-
 
 
 imageBuildList(os.getcwd() + "/outputs/media/generated/")
