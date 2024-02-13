@@ -1,0 +1,60 @@
+{
+    "id": "cbfd7a2dafce73aa410855da5a29a90a",
+    "title": "Disco Deception",
+    "tagline": "Stealing more than just dance moves.",
+    "mpaa_rating": "PG-13",
+    "mpaa_rating_content": "For thematic elements, brief violence, and some suggestive content.",
+    "critic_score": 7.5,
+    "critic_review": "Alfonso Cuaronionn's 'Disco Deception' is a rhythmic romp that blends a fantastical setting with period-specific zest. Newcomer Chris Pineapple brings a refreshing blend of humor and sincerity to the screen, and the PG-13 rating ensures that the film remains a family-friendly affair while subtly tackling more mature themes. While it may not be Cuaronionn's most profound work, it's certainly an entertaining journey worth the ticket.",
+    "popularity_score": 8.8,
+    "genre": "Adventure",
+    "description": "Aboard the luxurious cruise liner 'Northern Lights', a quirky chemist named Einar and a stoic troll named Ragnarok team up in a groovy tale of mistaken identity and high-seas hijinks. Set against the backdrop of the swinging disco era, Chris Pineapple shines in their debut role, navigating the glittering world where the dance floor becomes the battleground for wit and deception. Directed by the acclaimed Alfonso Cuaronionn, 'Disco Deception' is a fantastical voyage where the only thing thicker than the music's bassline is the plot.",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a simple and dry title, short and simple quirky tagline, and description teaser of a MPAA PG-13 rated movie. Directed by award winning Alfonso Cuaronionnion, the movie stars Chris Pineapple in their debut role. Located at Cruise liner of a Fantasy Extended Edition film where Troll and Chemist are the main characters. The movie is about a Identity Theft during Disco Era. make the character names of Viking origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "dry",
+            "quirky"
+        ],
+        "ratings": [
+            "PG-13"
+        ],
+        "directors": [
+            "Alfonso Cuaronion"
+        ],
+        "actors": [
+            "Chris Pineapple"
+        ],
+        "locations": [
+            "Cruise liner"
+        ],
+        "genres": [
+            "Fantasy"
+        ],
+        "types": [
+            "Extended Edition"
+        ],
+        "roles": [
+            "Troll",
+            "Chemist"
+        ],
+        "tropes": [
+            "Identity Theft"
+        ],
+        "eras": [
+            "Disco Era"
+        ],
+        "origins": [
+            "Viking"
+        ]
+    },
+    "azure_openai_text_completion_endpoint": "https://nilop-aai-caneast.openai.azure.com/",
+    "azure_openai_text_completion_deployment_name": "gpt-4-1106Preview",
+    "azure_openai_text_completion_api_version": "2023-12-01-preview",
+    "image_generation_time": "2024-02-12 18:24:33.011587",
+    "image_prompt": "Envision a groovy, luxurious cruise liner scene from the disco era, with vibrant colors and glittering lights. Imagine two unique characters, a quirky chemist named Einar and a stoic troll named Ragnarok, amidst a lively dance floor filled with disco balls and dancers clad in 70s attire. The atmosphere is charged with energy, yet there\"s an air of mystery as our characters engage in a battle of wits. No text, explicit content, or weapons should be included.",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview",
+    "image_font": "Magneto"
+}

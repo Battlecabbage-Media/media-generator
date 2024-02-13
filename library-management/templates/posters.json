@@ -5,7 +5,7 @@
                 {
                     "delimiter": ":",
                     "scale": 0.92,
-                    "decrement": 1,
+                    "decrement": 0,
                     "y_placement": "top",
                     "line_padding": 20,
                     "stroke_width": 2
@@ -14,8 +14,8 @@
             "tagline": [
                 {
                     "delimiter": ",",
-                    "scale": 0.75,
-                    "decrement": 7,
+                    "scale": 0.85,
+                    "decrement": 6,
                     "y_placement": "bottom",
                     "line_padding": 28,
                     "stroke_width": 1
@@ -26,8 +26,32 @@
             "title": [
                 {
                     "delimiter": ":",
-                    "scale": 0.92,
+                    "scale": 0.95,
                     "decrement": 1,
+                    "y_placement": "top",
+                    "line_padding": 20,
+                    "stroke_width": 2
+                }
+            ],
+            "cast": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.90,
+                    "decrement": 6,
+                    "y_placement": "bottom",
+                    "line_padding": 30,
+                    "stroke_width": 1,
+                    "cast_type": "directors"
+
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 0,
                     "y_placement": "middle",
                     "line_padding": 20,
                     "stroke_width": 2
@@ -36,7 +60,7 @@
             "tagline": [
                 {
                     "delimiter": ",",
-                    "scale": 0.80,
+                    "scale": 0.90,
                     "decrement": 7,
                     "y_placement": "top",
                     "line_padding": 30,
@@ -48,18 +72,54 @@
             "title": [
                 {
                     "delimiter": ":",
-                    "scale": 0.92,
-                    "decrement": 1,
+                    "scale": 0.93,
+                    "decrement": 0,
+                    "y_placement": "top",
+                    "line_padding": 20,
+                    "stroke_width": 4
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.93,
+                    "decrement": 0,
                     "y_placement": "middle",
                     "line_padding": 20,
-                    "stroke_width": 2
+                    "stroke_width": 4
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.93,
+                    "decrement": 0,
+                    "y_placement": "bottom",
+                    "line_padding": 20,
+                    "stroke_width": 4
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 0,
+                    "y_placement": "middle",
+                    "line_padding": 20,
+                    "stroke_width": 3
                 }
             ],
             "tagline": [
                 {
                     "delimiter": ",",
-                    "scale": 0.80,
-                    "decrement": 7,
+                    "scale": 0.90,
+                    "decrement": 16,
                     "y_placement": "top",
                     "line_padding": 30,
                     "stroke_width": 1
@@ -67,12 +127,14 @@
             ],
             "cast": [
                 {
-                    "delimiter": ",",
-                    "scale": 0.90,
-                    "decrement": 7,
+                    "delimiter": "<<>>",
+                    "scale": 0.95,
+                    "decrement": 22,
                     "y_placement": "bottom",
                     "line_padding": 30,
-                    "stroke_width": 1
+                    "stroke_width": 1,
+                    "cast_type": "directors"
+
                 }
             ]
         },
@@ -81,20 +143,44 @@
                 {
                     "delimiter": ":",
                     "scale": 0.92,
-                    "decrement": 1,
+                    "decrement": 0,
+                    "y_placement": "bottom",
+                    "line_padding": 20,
+                    "stroke_width": 3
+                }
+            ],
+            "cast": [
+                {
+                    "delimiter": "<<>>",
+                    "scale": 0.90,
+                    "decrement": 16,
+                    "y_placement": "top",
+                    "line_padding": 30,
+                    "stroke_width": 1,
+                    "cast_type": "directors"
+                }
+            ]
+        },
+        {
+            "title": [
+                {
+                    "delimiter": ":",
+                    "scale": 0.92,
+                    "decrement": 0,
                     "y_placement": "bottom",
                     "line_padding": 20,
                     "stroke_width": 2
                 }
             ],
-            "tagline": [
+            "cast": [
                 {
-                    "delimiter": ",",
+                    "delimiter": "<<>>",
                     "scale": 0.85,
-                    "decrement": 6,
-                    "y_placement": "middle",
+                    "decrement": 16,
+                    "y_placement": "top",
                     "line_padding": 30,
-                    "stroke_width": 1
+                    "stroke_width": 1,
+                    "cast_type": "actors"
                 }
             ]
         }

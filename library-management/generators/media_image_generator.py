@@ -9,6 +9,7 @@ import random
 from fontTools.ttLib import TTFont, TTCollection
 import argparse
 import datetime
+import numpy as np
 
 
 # REQUIREMENTS
@@ -37,28 +38,34 @@ def checkImage(images_directory,image_id):
         return False
 
 
+#TODO separate in directory file types
 # Find all media objects that dont have an associated .jpg image file
 def imageBuildList(media_directory):
 
     json_files = []
-    jpg_files = []
+    # jpg_files = []
     png_files = []
+
     # Iterate over all subdirectories in main generated media directory
     for root, dirs, files in os.walk(media_directory):
-        json_files += [os.path.join(root, f) for f in files if f.endswith('.json')]
-        jpg_files += [os.path.join(root, f) for f in files if f.endswith('.jpg')]
-        png_files += [os.path.join(root, f) for f in files if f.endswith('.png')]
 
+        json_files += [os.path.join(root, f) for f in files if f.endswith('.json')]
+        # jpg_files += [os.path.join(root, f) for f in files if f.endswith('.jpg')]
+        png_files += [os.path.join(root, f) for f in files if f.endswith('.png')]
+    
     # Check if there is a .jpg file that matches the same name as a .json file
     missing_images = []
     for json_file in json_files:
-        # Remove the file extension to get the base name
-        base_name = os.path.splitext(json_file)[0]
-        if base_name + '.jpg' not in jpg_files:
-            #missing_images.append(f"{root}/{base_name}.json")
-            missing_images.append(f"{base_name}.json")
-    
+
+        base_file = os.path.basename(json_file)
+        # Construct the path to the .jpg file in the 'images' folder
+        jpg_file_path = os.path.join(os.path.dirname(json_file), "images", os.path.basename(json_file).replace(".json", ".jpg"))
+        # Check if a .jpg file exists
+        if not os.path.exists(jpg_file_path):
+            missing_images.append(json_file)
+
     return missing_images, png_files      
+
 
 
 # Generate the prompt for the image based upon the media object info
@@ -140,8 +147,8 @@ def generateImage(file_path, image_prompt, media_object):
             )
             break
         except Exception as e:
-            print(f"{str(datetime.datetime.now())} - Attempt {attempt+1} of {i_range} failed to generate image for {media_object['title']}, ID: {media_object['id']}.")
-            print(f"Error: {e}")
+            if args.verbose: print(f"{str(datetime.datetime.now())} - Attempt {attempt+1} of {i_range} failed to generate image for {media_object['title']}, ID: {media_object['id']}.")
+            if args.verbose: print(f"Error: {e}")
     else:
         return False, "FAILED"
 
@@ -152,7 +159,29 @@ def generateImage(file_path, image_prompt, media_object):
     image_url = json_response["data"][0]["url"]  # extract image URL from response
     generated_image = requests.get(image_url).content  # download the image
     
-    file_path=file_path.replace('.json','.png')
+    file_path=file_path.replace(f"{media_object["id"]}.json",f"/images/{media_object["id"]}.png")
+
+    #Get the directory of file path
+
+    
+    # TODO: Check if the image is letterboxed and retry if it is
+    # # Open the image
+    # img = Image.open(generated_image)
+    # # Define the section (top left x, top left y, bottom right x, bottom right y)
+    # section = (10, 10, 50, 50)
+    # # Crop the section from the image
+    # crop = img.crop(section)
+    # # Get the color of the first pixel
+    # first_pixel_color = crop.getpixel((0, 0))
+    # # Check if all pixels have the same color
+    # is_same_color = all(crop.getpixel((x, y)) == first_pixel_color for x in range(crop.width) for y in range(crop.height))
+    # if is_same_color:
+    #     print(f"Image {media_object['id']} is letterboxed, retrying.")
+    #     #Resubmit the image. There could be concern of an infinite loop here, but the likelihood is low since letterboxing rarely happens
+    #     generateImage(file_path, image_prompt, media_object) 
+
+     # Create the images directory if it does not exist
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     try:
         with open(file_path, "wb") as image_file:
             image_file.write(generated_image)
@@ -201,19 +230,46 @@ def processImage(completion, media_object, image_path):
             poster_json=json.load(json_file)
             poster_layout=random.choice(poster_json["layouts"])
 
-        # loop through the layout and print out each key
-        for key in poster_layout:
-            text_string = media_object[key]
-            layout = poster_layout[key]
+        # loop through the layout and print out each text_type
+        for text_type in poster_layout:
+            layout = poster_layout[text_type]
+            
+            # Build out a cast layout if the text_type is cast from the template
+            if text_type == "cast":
+                cast_type = layout[0]["cast_type"]
+                text_string = ""
+                if cast_type == "directors":
+                    text_string += "Directed By "
+                    for director in media_object["prompt_list"]["directors"]:
+                        text_string += director + "   "
+                elif cast_type == "actors":
+                    actor_count=0
+                    for actor in media_object["prompt_list"]["actors"]:
+                        text_string += actor + "   "
+                        actor_count += 1
+                    if actor_count == 1:
+                        text_string = "Starring: " + text_string
+                else:
+                    for actor in media_object["prompt_list"]["actors"]:
+                        text_string += actor + "   "
+                    text_string += ":: Directed By "
+                    for director in media_object["prompt_list"]["directors"]:
+                        text_string += director + "   "
+            else:
+                text_string = media_object[text_type]
+            
+            # Randomly choose to uppercase the text
+            uppercase_chance = random.randint(1, 10)
+            if uppercase_chance == 1:
+                text_string = text_string.upper()
 
-            #TODO maybe do some formatting for cast text if that is the layout key
             writeText(img, img_w, img_h, text_string, layout[0], font_path)
 
         # TODO rethink the qhole quality thing, if even needed.
         if not args.low_quality:
             img = img.resize((724, 1267))
             img = img.convert('RGB')
-            img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=70)
+            img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=75)
             #Delete the original png file
             os.remove(image_path)
         else:
@@ -250,7 +306,7 @@ def writeText(img, img_w, img_h, text_string, layout, font_path):
     # The height of the font is the delta of its ascent and descent
     font_height = ascent - descent
 
-    section_top = 30 # Pad off the top of the image
+    section_top = 25 # Pad off the top of the image
     section_middle = (img_h / 2) - (font_height * len(text_list) + (layout["line_padding"] * len(text_list))) # Center of the image but offset by font and line count
     section_bottom = img_h - (img_h / 8) # bottom 1/8th of image
     y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
@@ -272,8 +328,34 @@ def writeText(img, img_w, img_h, text_string, layout, font_path):
         if text_count > 1:
             y_placement = y_placement + (layout["line_padding"] * (text_count - 1))
 
-        print(f"Text: {text_line}, Line: {text_count}, Font Height:, {font_height}  Y Placement: {y_placement}, Start Offset: {y_start}")
-        draw.text((w_placement, y_placement), text_line, font=font, stroke_width=layout["stroke_width"], stroke_fill='black') # put the text on the image
+        sample_box = (w_placement, y_placement, w_placement + w, y_placement + font_height)
+        crop = img.crop(sample_box)
+        pixels = np.array(crop)
+        average_color = pixels.mean(axis=(0, 1))
+
+        average_color = tuple(map(int, average_color))
+        color_average = sum(average_color) / len(average_color)
+        if color_average < 60:
+            r_comp = 255
+            g_comp = 255
+            b_comp = 255
+            stroke_color="#9A9A9A"
+        elif color_average > 200:
+            r_comp = 125
+            g_comp = 125
+            b_comp = 125
+            stroke_color="#101010"
+        else:
+            r_comp = 0
+            g_comp = 0
+            b_comp = 0
+            stroke_color="#CDCDCD"
+                    
+        
+        # hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0]+complimentary_average, complimentary_color[1]+complimentary_average, complimentary_color[2]+complimentary_average)
+        hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
+
+        draw.text((w_placement, y_placement), text_line, fill=hex_color, font=font, stroke_width=1, stroke_fill=stroke_color) # put the text on the image
         
         text_count += 1
 
@@ -284,8 +366,11 @@ def main():
     processed_count=0
     created_count=0
 
-    # Get list of all media objects missing a poster, and orphaned png posters files    
+    # Get list of all media objects missing a poster, and orphaned png posters files 
+    # TODO variable, you know how to do it   
     missing_list, png_list = imageBuildList(os.getcwd() + "/outputs/media/generated/")
+    #print(missing_list)
+    #exit()
 
     if len(png_list) > 0:
         print(f"{str(datetime.datetime.now())} - Orphaned PNG files found, quick housekeeping.")
@@ -304,21 +389,24 @@ def main():
 
             with open(filepath, 'r') as file:
                 media_object = json.load(file)
-                    
-                if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image Prompt for {media_object["title"]}, ID: {media_object["id"]}")
+
+                print(f"{str(datetime.datetime.now())} - Generating Image for {media_object["title"]}, ID: {media_object["id"]}")
+
+                if args.verbose:print(f"{str(datetime.datetime.now())} - Generating Image Prompt for {media_object["title"]}, ID: {media_object["id"]}")
                 completion=generateImagePrompt(media_object)
                 if args.verbose: print(f"{str(datetime.datetime.now())} - Image Prompt Generated for {media_object["title"]}, ID: {media_object["id"]} \nImage Prompt:\n{completion["image_prompt"]}")
-                                                    
-                if args.verbose: print(f"{str(datetime.datetime.now())} - Generating Image for {media_object["title"]}, ID: {media_object["id"]}")
+
                 result, image_path = generateImage(filepath, completion, media_object)
                 if result == True:
                     processImage(completion, media_object, image_path)
-                    print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]} \nLocation: {str(image_path.replace('.png','.jpg'))}")
+                    print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]}")
+                    if args.verbose: print(f"Location: {str(image_path.replace('.png','.jpg'))}")
                     
                     # Save image completion and image generate date to media object file
                     with open(filepath, 'w') as updated_file:
                         media_object["image_generation_time"] = str(datetime.datetime.now())
                         media_object["image_prompt"] = completion["image_prompt"].replace("'", "\"")
+                        media_object["image_font"] = completion["font"]
                         media_object["azure_openai_image_model_endpoint"] = os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
                         media_object["azure_openai_image_model_deployment"] = os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME")
                         media_object["azure_openai_image_model_api_version"] = os.getenv("AZURE_OPENAI_DALLE3_API_VERSION")
@@ -330,8 +418,8 @@ def main():
                     print(f"{str(datetime.datetime.now())} - Failed to generate image for {media_object["title"]} ID: {media_object["id"]}")
                 
                 processed_count+=1
-                print(f"{str(datetime.datetime.now())} - Media Object Processed: {str(processed_count)} of {str(missing_count)}")
-                
+                print(f"{str(datetime.datetime.now())} - Media Objects Processed: {str(processed_count)} of {str(missing_count)}")
+
         message = f"{str(datetime.datetime.now())} - All media objects reviewed."
         if processed_count > 0: 
             message += f" Image Create Count: {str(created_count)}, Processed Count: {str(processed_count)}"
@@ -360,6 +448,6 @@ parser.add_argument("-lq", "--low_quality", action='store_true', help="Create lo
 args = parser.parse_args()
 
 
-imageBuildList(os.getcwd() + "/outputs/media/generated/")
+#imageBuildList(os.getcwd() + "/outputs/media/generated/")
 # Run the main loop
 main()

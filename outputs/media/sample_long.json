@@ -1,0 +1,53 @@
+{
+    "id": "3e81ae8221c1eb27785bd47fefac5999",
+    "title": "Spy Salad: Mission in Veggie Valley",
+    "tagline": "They're fresh, they're green, and they're on a covert bean!",
+    "mpaa_rating": "G",
+    "mpaa_rating_content": "This film is rated G for general audiences. It contains no material that parents would find inappropriate for children.",
+    "critic_score": 7,
+    "critic_review": "While 'Spy Salad: Mission in Veggie Valley' may not break new ground in the genre, its wholesome humor and vibrant performances by Alba-cado and Clooneybean are sure to entertain families. Cucumberbrick's direction adds a quirky charm that leaves you rooting for these leafy heroes. A delightful dish best served fun!",
+    "popularity_score": 9.7,
+    "genre": "Comedy",
+    "description": "In the heart of Veggie Valley, two unlikely heroes, Avocadia (Jessica Alba-cado) and Broc (George Clooneybean), team up for the crunchiest mission of their lives. Avocadia, a world-renowned graffiti artist with a heart of gold, and Broc, a sharp-eyed photographer seeking redemption, find themselves entangled in a high-fiber spy game. Directed by the legendary Stanley Cucumberbrick, this pair must peel back the layers of a mysterious plot that threatens the peace of their salad bowl society. Will Avocadia and Broc lettuce save the day, or will they simply wilt under pressure? Dive into 'Spy Salad: Mission in Veggie Valley' for a family-friendly adventure that promises to be a-peeling to audiences of all ages!",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a simple and silly title, short and simple tounge-in-cheek tagline, and description teaser of a MPAA G rated movie. Starring Jessica Alba-cado and George Clooneybean as the main characters. Directed by Stanley Cucumberbrick. A Streaming Exclusive Spy Film including a Graffiti Artist and a Photographer participating in a Redemption. make the character names of Viking origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "silly",
+            "tounge-in-cheek"
+        ],
+        "ratings": [
+            "G"
+        ],
+        "actors": [
+            "Jessica Alba-cado",
+            "George Clooneybean"
+        ],
+        "directors": [
+            "Stanley Cucumberbrick"
+        ],
+        "types": [
+            "Streaming Exclusive"
+        ],
+        "genres": [
+            "Spy Film"
+        ],
+        "roles": [
+            "Graffiti Artist",
+            "Photographer"
+        ],
+        "tropes": [
+            "Redemption"
+        ],
+        "origins": [
+            "Viking"
+        ]
+    },
+    "aoai_deployment": "gpt-4-1106Preview",
+    "image_prompt": "Illustrate a whimsical, vibrant valley filled with anthropomorphic vegetables engaged in spy activities. Picture Avocadia, a sly avocado with a spray paint can, next to Broc, a keen-eyed broccoli with a camera, both in a stealthy pose. They are surrounded by a lush environment of garden greenery, hinting at hidden secrets. The scene should be playful and colorful, reflecting a family-friendly adventure in \"Spy Salad: Mission in Veggie Valley\".",
+    "image_generation_time": "2024-02-12 15:32:28.018796",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview",
+    "image_font": "Comic Sans MS"
+}
