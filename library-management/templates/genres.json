@@ -17,7 +17,6 @@
         "Mystery",
         "Romance",
         "Sci-Fi",
-        "Short Film",
         "Sport",
         "Superhero",
         "Thriller",
@@ -25,11 +24,9 @@
         "Western",
         "Fantasy",
         "Romantic Comedy",
-        "Slasher",
         "Supernatural",
         "Mockumentary",
         "Spy Film",
-        "Teen",
         "Tragedy"
     ]
 }

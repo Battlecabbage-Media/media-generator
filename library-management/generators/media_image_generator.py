@@ -24,9 +24,7 @@ load_dotenv()
 # 2. Implement the ability to generate a response without saving it to a file, dry run
 # 3. Implement checks for failures and move forward. If a failure occurs, log the prompt and response to a file for review, potenitally retrying the prompt a few times before moving on.
 # 5. Ability to add a logo to the poster like the rating
-# 6. Format the font to have better readability. Maybe on complimentary color, outlines, etc.
 # 7. Proper checks if certain values came back from completion, example critic_score
-# 8. Check for letterbox image and regenerate, Cameron?
 # 9. Fix lq flag to work properly, keeps failing size, I blame Dalle3, works with 1024x1024 not 512x512
 
 
@@ -43,7 +41,6 @@ def checkImage(images_directory,image_id):
 def imageBuildList(media_directory):
 
     json_files = []
-    # jpg_files = []
     png_files = []
 
     # Iterate over all subdirectories in main generated media directory
@@ -263,7 +260,7 @@ def processImage(completion, media_object, image_path):
             if uppercase_chance == 1:
                 text_string = text_string.upper()
 
-            writeText(img, img_w, img_h, text_string, layout[0], font_path)
+            writeText(img, img_w, img_h, text_string, layout[0], font_path, text_type)
 
         # TODO rethink the qhole quality thing, if even needed.
         if not args.low_quality:
@@ -277,7 +274,7 @@ def processImage(completion, media_object, image_path):
 
     return True
 
-def writeText(img, img_w, img_h, text_string, layout, font_path): 
+def writeText(img, img_w, img_h, text_string, layout, font_path, text_type): 
     
     draw = ImageDraw.Draw(img)
 
@@ -335,27 +332,34 @@ def writeText(img, img_w, img_h, text_string, layout, font_path):
 
         average_color = tuple(map(int, average_color))
         color_average = sum(average_color) / len(average_color)
-        if color_average < 60:
-            r_comp = 255
-            g_comp = 255
-            b_comp = 255
-            stroke_color="#9A9A9A"
-        elif color_average > 200:
-            r_comp = 125
-            g_comp = 125
-            b_comp = 125
-            stroke_color="#101010"
-        else:
-            r_comp = 0
-            g_comp = 0
-            b_comp = 0
-            stroke_color="#CDCDCD"
-                    
-        
-        # hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0]+complimentary_average, complimentary_color[1]+complimentary_average, complimentary_color[2]+complimentary_average)
-        hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
 
-        draw.text((w_placement, y_placement), text_line, fill=hex_color, font=font, stroke_width=1, stroke_fill=stroke_color) # put the text on the image
+        # Set the font color to the complimentary color if a title else to the average color contrast
+        if text_type == "title":
+            case = {
+                color_average < 60: "#9A9A9A",
+                color_average > 200: "#101010",
+                True: "#CDCDCD"
+
+            }
+            stroke_color = case.get(True)
+
+            denominator = 275 if color_average > 160 else 235
+            complimentary_color = [denominator - average_color[0], denominator - average_color[1], denominator - average_color[2]]
+            hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0], complimentary_color[1], complimentary_color[2])
+        else:
+            if color_average < 60:
+                r_comp, g_comp, b_comp = 245, 245, 245
+                stroke_color="#9A9A9A"
+            elif color_average > 200:
+                r_comp, g_comp, b_comp = 125, 125, 125
+                stroke_color="#101010"
+            else:
+                r_comp, g_comp, b_comp = 30, 30, 30  
+                stroke_color="#CDCDCD"
+
+            hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
+
+        draw.text((w_placement, y_placement), text_line, fill=hex_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') # put the text on the image
         
         text_count += 1
 

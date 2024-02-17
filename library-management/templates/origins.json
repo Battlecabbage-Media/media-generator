@@ -12,10 +12,6 @@
         "Fantasy",
         "Dystopian",
         "Utopian",
-        "Viking",
-        "Pirate",
-        "Samurai",
-        "Cowboy",
         "Ancient Egyptian",
         "Ancient Greek",
         "Ancient Roman",
@@ -27,6 +23,8 @@
         "Alien",
         "Underwater",
         "Jungle",
-        "Arctic"
+        "Arctic",
+        "Native American",
+        "Nordic"
     ]
 }

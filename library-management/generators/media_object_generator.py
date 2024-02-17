@@ -13,9 +13,7 @@ import datetime
 # pip install python-dotenv
 # pip install openai
 
-# TODO
-# 1. Checks for failures and move forward. If a failure occurs, log the prompt and response to a file for review
-
+# TODO - Add proper error handling for failed requests, try/except blocks
 
 # Simply grabs a random value from the template file provided
 def getTemplateValue(template):
@@ -79,7 +77,7 @@ def submitPrompt(prompt, prompt_list):
     # Create a hash ID for the media object based upon the title
     hash_object = hashlib.md5()
     hash_object.update(completion["title"].encode())
-    media_id = hash_object.hexdigest()
+    media_id = hash_object.hexdigest()[:12]
 
     # TODO proper error handling if any of the completion values are missing
     media_object = { 

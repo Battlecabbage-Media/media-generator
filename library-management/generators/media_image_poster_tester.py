@@ -83,7 +83,7 @@ def processImage(font_name, media_object, image_path):
                 text_string = text_string.upper()
 
             #TODO maybe do some formatting for cast text if that is the layout text_type
-            writeText(img, img_w, img_h, text_string, layout[0], font_path)
+            writeText(img, img_w, img_h, text_string, layout[0], font_path, text_type)
 
 
         img = img.resize((724, 1267))
@@ -94,7 +94,7 @@ def processImage(font_name, media_object, image_path):
 
     return True
 
-def writeText(img, img_w, img_h, text_string, layout, font_path): 
+def writeText(img, img_w, img_h, text_string, layout, font_path, text_type): 
     
     draw = ImageDraw.Draw(img)
 
@@ -153,46 +153,35 @@ def writeText(img, img_w, img_h, text_string, layout, font_path):
         average_color = tuple(map(int, average_color))
         #complimentary_color = tuple(255 - x for x in average_color)
         color_average = sum(average_color) / len(average_color)
-        if color_average < 60:
-            r_comp = 255
-            g_comp = 255
-            b_comp = 255
-            stroke_color='grey'
-        elif color_average > 200:
-            r_comp = 125
-            g_comp = 125
-            b_comp = 125
-            stroke_color='black'
+        if text_type == "title":
+            case = {
+                color_average < 60: "#9A9A9A",
+                color_average > 200: "#101010",
+                True: "#CDCDCD"
+
+            }
+            stroke_color = case.get(True)
+
+            denominator = 275 if color_average > 160 else 235
+            complimentary_color = (denominator - average_color[0]), (denominator - average_color[1]), (denominator - average_color[2])
+
+            #hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0], complimentary_color[1], complimentary_color[2])
         else:
-            r_comp = 0
-            g_comp = 0
-            b_comp = 0
-            stroke_color='white'
+            opacity = 10
+            stroke_color=(210, 210, 210, opacity)
 
-        # # Get the average of the RGB values
-        # complimentary_average = (255 - (sum(complimentary_color) / len(complimentary_color)))
-        # if complimentary_average < 75:
-        #     r_comp = 0
-        #     g_comp = 0
-        #     b_comp = 0
-        #     stroke_color='white'
-        # elif complimentary_average > 200:
-        #     r_comp = 255
-        #     g_comp = 255
-        #     b_comp = 255
-        #     stroke_color='black'
-        # else:
-        #     r_comp = complimentary_color[0]
-        #     g_comp = complimentary_color[1]
-        #     b_comp = complimentary_color[2]
-        #     stroke_color='black'
+            if color_average < 60:
+                r_comp, g_comp, b_comp = 245, 245, 245
+            elif color_average > 200:
+                r_comp, g_comp, b_comp = 125, 125, 125
+                stroke_color=(30, 30, 30, opacity)
+            else:
+                r_comp, g_comp, b_comp = 30, 30, 30
 
-                    
-        
-        # hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0]+complimentary_average, complimentary_color[1]+complimentary_average, complimentary_color[2]+complimentary_average)
-        hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
+            complimentary_color = (r_comp, g_comp, b_comp, 100) #opacity as a 4th value (alpha channel)
+            #hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
 
-        draw.text((w_placement, y_placement), text_line, fill=hex_color, font=font, stroke_width=1, stroke_fill=stroke_color) # put the text on the image
+        draw.text((w_placement, y_placement), text_line, fill=complimentary_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') # put the text on the image
         
         text_count += 1
 

@@ -118,8 +118,8 @@
             "tagline": [
                 {
                     "delimiter": ",",
-                    "scale": 0.90,
-                    "decrement": 16,
+                    "scale": 0.70,
+                    "decrement": 18,
                     "y_placement": "top",
                     "line_padding": 30,
                     "stroke_width": 1
@@ -128,7 +128,7 @@
             "cast": [
                 {
                     "delimiter": "<<>>",
-                    "scale": 0.95,
+                    "scale": 0.90,
                     "decrement": 22,
                     "y_placement": "bottom",
                     "line_padding": 30,

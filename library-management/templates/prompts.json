@@ -5,9 +5,9 @@
     ],
     "prompts_cast": [
         "Starring {actors} and {actors} as the main characters. Directed by {directors}.",
-        "The movie stars {actors} and award winning {actors} as the main characters. The movie also stars {actors} and {actors} as the supporting characters. Directed by {directors}.",
+        "The movie stars {actors} and award winning {actors} as the main characters. The movie also stars {actors} as a supporting character. Directed by {directors}.",
         "The movie stars {actors} and is Directed by {directors}.",
-        "Directed by award winning {directors}, the movie stars {actors} in their debut role."
+        "Directed by award winning {directors}, the movie stars {actors} in their debut role, supported by {actors}."
     ],
     "prompts_synopsis": [
         "A {types} {genres} including a {roles} and a {roles} participating in a {tropes}.",
@@ -15,9 +15,9 @@
         "Located at {locations} of a {genres} {types} film where {roles} and {roles} are the main characters. The movie is about a {tropes} during {eras}."
     ],
     "prompts_end": [
-        "make the character names of {origins} origin. Provide the reason for the rating. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
+        "make the character names of {origins} origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
     ],
     "prompts_image":[
-        "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Output results as json."
+        "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Determine the best style for the image to be applied. Output results as json."
     ]
 }

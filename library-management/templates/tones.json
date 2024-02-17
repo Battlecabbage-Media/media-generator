@@ -1,13 +1,14 @@
-{
-    "tones":
-    [
-        "catchy",
-        "upbeat",
-        "sarcastic",
-        "quirky",
-        "dry",
-        "silly",
-        "pedantic",
-        "tounge-in-cheek"
-    ]
-}
+{  
+  "tones": [  
+    "Formal",  
+    "Playful",  
+    "Serious",  
+    "Optimistic",  
+    "Pessimistic",  
+    "Impartial",  
+    "Passionate",
+    "Humorous",
+    "Sarcastic",
+    "Cynical"
+  ]  
+}  
