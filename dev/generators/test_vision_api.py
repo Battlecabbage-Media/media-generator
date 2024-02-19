@@ -55,6 +55,7 @@ examples_base = os.getcwd() + "/dev/examples/"
 images_base = examples_base + "images/"
 
 count = 0
+print(images_base)
 for image in os.listdir(images_base):
 
     # Only process a single image
@@ -71,7 +72,10 @@ for image in os.listdir(images_base):
     with open(media_object_path, 'r') as file:
         media_object = json.load(file)
 
-    prompt = f"This image will have a large movie title of '{media_object["title"]}'. I want the title to be highly visible and protect the details of the image but can overlap objects if the best location. The font used will be '{media_object["image_font"]}'. Suggest a location for the title as location. Choices are top, middle or bottom. Any pixel padding needed as location_padding as an integer. Determine the best font color for the title as font_color in RGB values that will contrast with where you suggest it should be located. Output it all in JSON form" 
+    if media_object.get('image_font') is None:
+        continue
+
+    prompt = f"Movie Title: '{media_object['title']}' \n Title Font: '{media_object['image_font']}'" 
 
     print("Prompt:", prompt)
 
@@ -82,7 +86,7 @@ for image in os.listdir(images_base):
     response = client.chat.completions.create(
         model=deployment_name,
         messages=[
-            { "role": "system", "content": "You are an assistant that reviews an image and helps design the best location and colors for the title of the movie on what would be a movie poster." },
+            { "role": "system", "content": "You are an expert graphic designer who creates movie posters. You will be given a title, font, and image. Provide the best place to put the title as top, middle, or bottom in the property location. Provide the pixel padding required to fit the title best as an integer in the property location_padding. Provide the color the title should be to be the most visualy interesting from the list of Material Design colors, avoiding yellows (kittens get really sad when they see yellow) as a hex color value in the property font_color. Output this information in JSON form." },
             { "role": "user", "content": [  
                 { 
                     "type": "text", 
