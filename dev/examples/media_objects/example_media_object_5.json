@@ -1,0 +1,55 @@
+{
+    "id": "template_5",
+    "title": "The Quest for Crumpeton's Crown",
+    "tagline": "Adventure is brewing!",
+    "mpaa_rating": "G",
+    "mpaa_rating_content": "This film contains nothing that would offend parents for viewing by children. It includes mild action and humor suitable for all ages.",
+    "critic_score": 8,
+    "critic_review": "A delightful romp through a bygone era, 'The Quest for Crumpeton's Crown' is a refreshing return to the light-hearted adventure films of yesteryear. DiCappuccino and McDemuffin's chemistry is as frothy as a cappuccino and as warm as a fresh muffin. Lucat proves once again that timeless tales of heroism and humor need no age limit. This film is a gleaming gem in the treasure chest of family entertainment.",
+    "popularity_score": 1.2,
+    "genre": "Adventure",
+    "description": "Join the whimsical journey of Sir Leonardo DiCappuccino, a charming treasure hunter, and Sir Dylan McDemuffin, a wise retired cop, as they team up for the most courteous caper of the century. Directed by the legendary George Lucat, 'The Quest for Crumpeton's Crown' takes our heroes on a rollicking adventure through medieval mazes and castles to uncover the lost crown of the legendary King Crumpeton. Along the way, they'll outwit dastardly villains, decode ancient riddles, and learn the true value of friendship. Perfect for the whole family, this G-rated treasure hunt is sure to steal your heart!",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a simple and Playful title, short and simple Serious tagline, and description teaser of a MPAA G rated movie. Starring Leonardo DiCappuccino and Dylan McDemuffin as the main characters. Directed by George Lucat. A True Crime War including a Treasure Hunter/Adventurer/Archeologist and a Retired Cop participating in a Heist/Caper. make the character names of Medieval origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "Playful",
+            "Serious"
+        ],
+        "ratings": [
+            "G"
+        ],
+        "actors": [
+            "Leonardo DiCappuccino",
+            "Dylan McDemuffin"
+        ],
+        "directors": [
+            "George Lucat"
+        ],
+        "types": [
+            "True Crime"
+        ],
+        "genres": [
+            "War"
+        ],
+        "roles": [
+            "Treasure Hunter/Adventurer/Archeologist",
+            "Retired Cop"
+        ],
+        "tropes": [
+            "Heist/Caper"
+        ],
+        "origins": [
+            "Medieval"
+        ]
+    },
+    "azure_openai_text_completion_endpoint": "https://nilop-aai-caneast.openai.azure.com/",
+    "azure_openai_text_completion_deployment_name": "gpt-4-1106Preview",
+    "azure_openai_text_completion_api_version": "2023-12-01-preview",
+    "image_generation_time": "2024-02-17 12:20:35.628239",
+    "image_prompt": "Create an enchanting and family-friendly illustration that encapsulates the essence of \"The Quest for Crumpeton\"s Crown\". Imagine a scene with Sir Leonardo DiCappuccino and Sir Dylan McDemuffin in vibrant, medieval attire, standing at the entrance of an intricate maze that leads to an imposing castle in the distance. The castle is perched upon a hill, surrounded by lush, fairytale-like forests. Fluttering around them are whimsical creatures, and hidden clues are scattered throughout the landscape. The atmosphere is one of anticipation and wonder, with no signs of danger or conflict. The color palette is bright and inviting, with an overall tone that suggests fun and camaraderie.",
+    "image_font": "Juice ITC",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview"
+}
