@@ -1,0 +1,60 @@
+{
+    "id": "template_2",
+    "title": "Gavel of the Jungle",
+    "tagline": "Justice has a wild side.",
+    "mpaa_rating": "PG-13",
+    "mpaa_rating_content": "Includes intense sequences of thematic material, brief violence, and some strong language.",
+    "critic_score": 7,
+    "critic_review": "Paul Thomas Anderstork delivers a visually stunning piece with 'Gavel of the Jungle.' While the film sometimes treads familiar territory, it stands out with compelling performances, particularly from the newcomer Mickey Rouxke. The fusion of courtroom drama and historical narrative is handled with a deft touch, although the pacing may not be for everyone. A solid entry for those who appreciate a thoughtful, if somewhat pessimistic, take on justice's evolution.",
+    "popularity_score": 6.0,
+    "genre": "Drama",
+    "description": "In the heart of the colonial era, a courtroom becomes the battleground for truth and deception. Mickey Rouxke shines in their debut role as Kazi, a tenacious bartender turned monster hunter, who finds themselves entangled in a legal maelstrom. Supported by Harvey Kebabtel playing the steadfast but conflicted witness, Jengo, 'Gavel of the Jungle' weaves a tale of intrigue and morality, set against the backdrop of an arena that pits human cunning against the savagery of the times. Directed by Paul Thomas Anderstork, this film is a riveting historical Oscar bait that delves into the very essence of justice and its murky execution in a wild, unforgiving world.",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a title, tagline, and Pessimistic description teaser of a MPAA PG-13 rated movie. Directed by award winning Paul Thomas Anderstork, the movie stars Mickey Rouxke in their debut role, supported by Harvey Kebabtel. Located at Arena (Sports Stadium/Underground Fighting Arena) of a History Oscar Bait film where Bartender/Waitress and Monster Hunter are the main characters. The movie is about a Courtroom Drama during Colonial Era. make the character names of Jungle origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "Pessimistic"
+        ],
+        "ratings": [
+            "PG-13"
+        ],
+        "directors": [
+            "Paul Thomas Anderstork"
+        ],
+        "actors": [
+            "Mickey Rouxke",
+            "Harvey Kebabtel"
+        ],
+        "locations": [
+            "Arena (Sports Stadium/Underground Fighting Arena)"
+        ],
+        "genres": [
+            "History"
+        ],
+        "types": [
+            "Oscar Bait"
+        ],
+        "roles": [
+            "Bartender/Waitress",
+            "Monster Hunter"
+        ],
+        "tropes": [
+            "Courtroom Drama"
+        ],
+        "eras": [
+            "Colonial Era"
+        ],
+        "origins": [
+            "Jungle"
+        ]
+    },
+    "azure_openai_text_completion_endpoint": "https://nilop-aai-caneast.openai.azure.com/",
+    "azure_openai_text_completion_deployment_name": "gpt-4-1106Preview",
+    "azure_openai_text_completion_api_version": "2023-12-01-preview",
+    "image_generation_time": "2024-02-17 12:07:59.433011",
+    "image_prompt": "Visualize a colonial era courtroom with a lush jungle visible through large open windows. The scene is filled with tension and anticipation as a rugged bartender with a determined look stands before a judge\"s gavel, with wild vines creeping along the wooden stands. The atmosphere is thick with an air of mystery and the weight of moral judgment, without any modern elements, to capture the essence of the film \"Gavel of the Jungle\".",
+    "image_font": "Perpetua Titling MT",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview"
+}

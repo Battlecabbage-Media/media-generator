@@ -1,0 +1,56 @@
+{
+    "id": "template_4",
+    "title": "Saut\u00e9ed Secrets",
+    "tagline": "Some ingredients should never be mixed.",
+    "mpaa_rating": "PG-13",
+    "mpaa_rating_content": "Contains scenes of mild violence, brief strong language, and thematic elements.",
+    "critic_score": 7,
+    "critic_review": "Saut\u00e9ed Secrets delivers a flavorful blend of suspense and satire. Kinnearcorn and Mirrench whip up an intriguing chemistry, while Ale's supporting zest adds depth to a well-seasoned plot. Llama's direction is both tender and well-done, crafting a world that's as rich as it is ravaged. While it might not be to everyone's taste, this film is a savory watch for those hungry for a side of dark humor with their dystopian drama.",
+    "popularity_score": 8.3,
+    "genre": "Drama",
+    "description": "In the charred remnants of a world that once was, 'Sizzle' (Greg Kinnearcorn), a grizzled chef with a recipe for disaster, teams up with 'The Barrister' (Helen Mirrench), a wily politician with a taste for power. Together, they uncover a culinary conundrum that could topple what's left of civilization. Mahershala Ale stars as 'The Forager', a survivor with a secret that's too spicy to handle. Directed by David Llama, 'Saut\u00e9ed Secrets' serves up a post-apocalyptic feast where forbidden knowledge is the main course, and the truth is an acquired taste.",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a simple and Sarcastic title, short and simple Serious tagline, and description teaser of a MPAA PG-13 rated movie. The movie stars Greg Kinnearcorn and award winning Helen Mirrench as the main characters. The movie also stars Mahershala Ale as a supporting character. Directed by David Llama. A Student Film Tragedy including a Politician/Lawyer and a Chef/Cook/Restaurateur participating in a Forbidden Knowledge. make the character names of Post-Apocalyptic origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "Sarcastic",
+            "Serious"
+        ],
+        "ratings": [
+            "PG-13"
+        ],
+        "actors": [
+            "Greg Kinnearcorn",
+            "Helen Mirrench",
+            "Mahershala Ale"
+        ],
+        "directors": [
+            "David Llama"
+        ],
+        "types": [
+            "Student Film"
+        ],
+        "genres": [
+            "Tragedy"
+        ],
+        "roles": [
+            "Politician/Lawyer",
+            "Chef/Cook/Restaurateur"
+        ],
+        "tropes": [
+            "Forbidden Knowledge"
+        ],
+        "origins": [
+            "Post-Apocalyptic"
+        ]
+    },
+    "azure_openai_text_completion_endpoint": "https://nilop-aai-caneast.openai.azure.com/",
+    "azure_openai_text_completion_deployment_name": "gpt-4-1106Preview",
+    "azure_openai_text_completion_api_version": "2023-12-01-preview",
+    "image_generation_time": "2024-02-17 12:21:58.394419",
+    "image_prompt": "Envision a desolate landscape with the ruins of a once-vibrant city serving as the backdrop. Amidst this, a silhouette of a grizzled chef, \"Sizzle\", and a wily politician, \"The Barrister\", are seen standing back-to-back, each characterizing their unique traits: the chef with a worn-out apron and the politician with a sly grin, both looking towards a horizon that hints at secrets untold. The air seems thick with the aroma of mystery, and their shadows cast long on the broken pavement. No signs of life, save for \"The Forager\" lurking in the shadows with a basket of foraged goods, a look of caution etched on his face. The scene is bathed in a sepia-toned hue, suggesting an era long gone but the intrigue freshly unfolding.",
+    "image_font": "Trebuchet MS",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview"
+}

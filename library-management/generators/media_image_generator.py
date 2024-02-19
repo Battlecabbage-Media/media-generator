@@ -331,6 +331,8 @@ def writeText(img, img_w, img_h, text_string, layout, font_path, text_type):
         average_color = pixels.mean(axis=(0, 1))
 
         average_color = tuple(map(int, average_color))
+        # Turn the rgb color into grayscale
+
         color_average = sum(average_color) / len(average_color)
 
         # Set the font color to the complimentary color if a title else to the average color contrast
@@ -376,8 +378,8 @@ def main():
     #print(missing_list)
     #exit()
 
-    if len(png_list) > 0:
-        print(f"{str(datetime.datetime.now())} - Orphaned PNG files found, quick housekeeping.")
+    if len(png_list) > 0 and args.purge:
+        print(f"{str(datetime.datetime.now())} - PNG files found and purge flag '-p' passed, cleaing up pngs.")
         for png_file in png_list:
             os.remove(png_file)
 
@@ -401,7 +403,7 @@ def main():
                 if args.verbose: print(f"{str(datetime.datetime.now())} - Image Prompt Generated for {media_object["title"]}, ID: {media_object["id"]} \nImage Prompt:\n{completion["image_prompt"]}")
 
                 result, image_path = generateImage(filepath, completion, media_object)
-                if result == True:
+                if not args.image_only and result == True:
                     processImage(completion, media_object, image_path)
                     print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]}")
                     if args.verbose: print(f"Location: {str(image_path.replace('.png','.jpg'))}")
@@ -423,6 +425,7 @@ def main():
                 
                 processed_count+=1
                 print(f"{str(datetime.datetime.now())} - Media Objects Processed: {str(processed_count)} of {str(missing_count)}")
+                    
 
         message = f"{str(datetime.datetime.now())} - All media objects reviewed."
         if processed_count > 0: 
@@ -449,6 +452,8 @@ parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, genera
 parser.add_argument("-v", "--verbose", action='store_true', help="Show object outputs like prompts and completions")
 parser.add_argument("-s", "--single", action='store_true', help="Only process a single image, for testing purposes")
 parser.add_argument("-lq", "--low_quality", action='store_true', help="Create low quality images for testing.")
+parser.add_argument("-io", "--image_only", action='store_true', help="Create the image without text or conversion to jpg.")
+parser.add_argument("-p", "--purge", action='store_true', help="Purge all png's from the images directory.")
 args = parser.parse_args()
 
 

@@ -1,0 +1,61 @@
+{
+    "id": "template_3",
+    "title": "Chronicles of Aether: The Gears of Deceit",
+    "tagline": "Unearth the past, expose the corruption, survive the truth.",
+    "mpaa_rating": "PG-13",
+    "mpaa_rating_content": "This film contains sequences of intense thematic elements, brief violence, and some disturbing images.",
+    "critic_score": 7,
+    "critic_review": "Oliver Stork's 'Chronicles of Aether: The Gears of Deceit' delivers a compelling blend of horror and education, with strong performances by O'Connelliflower and Fishburne. The movie's intricate world-building and rich steampunk aesthetics are captivating, although the pacing occasionally falters. A solid addition to the genre that offers both thrills and thought-provoking moments.",
+    "popularity_score": 8.2,
+    "genre": "Horror",
+    "description": "In the steampunk labyrinth of Terminalis Hub, academic prodigies Dr. Vorel Ignatius (Jack O'Connelliflower) and Professor Thadon Xyler (Laurence Fishburne) uncover a web of corruption that could shatter their reality. With the help of their enigmatic colleague, Dr. Antov Kale (Albert Broccoli), they embark on a harrowing journey through the gears of time, challenging the very fabric of their steampunk society. Directed by Oliver Stork, 'Chronicles of Aether: The Gears of Deceit' is a gripping tale of intellectual might versus sinister forces during the peak of the Steampunk Era.",
+    "poster_url": "movie_poster_url.jpeg",
+    "prompt": "Create a title, tagline, and Formal description teaser of a MPAA PG-13 rated movie. The movie stars Jack O'Connelliflower and award winning Laurence Fishburne as the main characters. The movie also stars Albert Broccoli as a supporting character. Directed by Oliver Stork. Located at Transport Hub (Train Station/Airport) of a Horror Educational film where Academic/Researcher (Historian/Anthropologist/Sociologist/Psychologist) and Academic/Researcher (Historian/Anthropologist/Sociologist/Psychologist) are the main characters. The movie is about a Corruption during Steampunk Era. make the character names of Alien origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property.",
+    "prompt_list": {
+        "tones": [
+            "Formal"
+        ],
+        "ratings": [
+            "PG-13"
+        ],
+        "actors": [
+            "Jack O'Connelliflower",
+            "Laurence Fishburne",
+            "Albert Broccoli"
+        ],
+        "directors": [
+            "Oliver Stork"
+        ],
+        "locations": [
+            "Transport Hub (Train Station/Airport)"
+        ],
+        "genres": [
+            "Horror"
+        ],
+        "types": [
+            "Educational"
+        ],
+        "roles": [
+            "Academic/Researcher (Historian/Anthropologist/Sociologist/Psychologist)",
+            "Academic/Researcher (Historian/Anthropologist/Sociologist/Psychologist)"
+        ],
+        "tropes": [
+            "Corruption"
+        ],
+        "eras": [
+            "Steampunk Era"
+        ],
+        "origins": [
+            "Alien"
+        ]
+    },
+    "azure_openai_text_completion_endpoint": "https://nilop-aai-caneast.openai.azure.com/",
+    "azure_openai_text_completion_deployment_name": "gpt-4-1106Preview",
+    "azure_openai_text_completion_api_version": "2023-12-01-preview",
+    "image_generation_time": "2024-02-17 12:01:39.990757",
+    "image_prompt": "Envision a dimly lit steampunk cityscape, with towering brass and copper structures adorned with gears and pipes, shrouded in mist. In the foreground, a silhouette of two scholarly figures examining an intricate mechanism, a glow emanating from their discovery. Around them, the cobbled streets and steam-powered machinery suggest a world of industrial marvels, where every building and vehicle is a testament to the era\"s engineering prowess. The air is filled with a sense of mystery and the potential for great revelations.",
+    "image_font": "Perpetua",
+    "azure_openai_image_model_endpoint": "https://nilop-aai-sweden.openai.azure.com/",
+    "azure_openai_image_model_deployment": "dalle3",
+    "azure_openai_image_model_api_version": "2023-12-01-preview"
+}
