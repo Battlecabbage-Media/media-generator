@@ -1,4 +1,5 @@
 .env
+.venv
 outputs/media/generated/**/*.json
 outputs/media/generated/**/*.jpg
 outputs/media/generated/**/*.png
