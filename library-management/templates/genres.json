@@ -10,7 +10,6 @@
         "Drama",
         "Family",
         "Fantasy",
-        "Film Noir",
         "History",
         "Horror",
         "Musical",
@@ -22,11 +21,8 @@
         "Thriller",
         "War",
         "Western",
-        "Fantasy",
-        "Romantic Comedy",
         "Supernatural",
         "Mockumentary",
-        "Spy Film",
         "Tragedy"
     ]
 }

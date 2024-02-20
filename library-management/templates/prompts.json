@@ -19,5 +19,11 @@
     ],
     "prompts_image":[
         "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Determine the best style for the image to be applied. Output results as json."
+    ],
+    "vision_system":[
+        "You are an expert graphic designer who creates movie posters. You will be given a title, font, and image. Provide the best place to put the title as top, middle, or bottom as the property location. Provide the pixel padding required to fit the title best as an integer in the property location_padding. Provide the color the title should be to be the most visualy interesting from the list of Material Design colors, avoiding yellows (kittens get really sad when they see yellow) as a hex color value in the property font_color. Output this information in JSON form."
+    ],
+    "vision":[
+        "Movie Title: '{title}' \n Title Font: '{font}'"
     ]
 }

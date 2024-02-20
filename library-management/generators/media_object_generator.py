@@ -129,10 +129,10 @@ def saveCompletion(media_object):
         print(f"Error saving media object {media_object['id']}.\n{e}")
         return False
 
-
 # Main function to run the generator
 def main():
 
+    start_time=datetime.datetime.now()
     # Check if a count command line value is provided and is a digit, if not default to 1
     if(args.count):
         if(args.count.isdigit()):
@@ -150,6 +150,8 @@ def main():
     i=0
     while i < generate_count:
 
+
+        object_start_time = datetime.datetime.now()
         # Print the current media count being generated
         print(f"{str(datetime.datetime.now())} - Generating media object: {str(i+1)} of {str(generate_count)}")
 
@@ -172,11 +174,14 @@ def main():
         if not args.dryrun:
             if args.verbose: print(f"{str(datetime.datetime.now())} - Saving {completion["title"]}, {completion["id"]}")
             saveCompletion(completion)
-            print(f"{str(datetime.datetime.now())} - SAVED - {completion["title"]}, {completion["id"]}")
+            object_end_time = datetime.datetime.now()
+            object_duration = object_end_time - object_start_time
+
+            print(f"{str(datetime.datetime.now())} - SAVED - {completion["title"]}, {completion["id"]}, Generate Time: {str(datetime.datetime.now() - object_start_time)}")
 
         i+=1
 
-    print(f"{str(datetime.datetime.now())} - Finsished generating {str(generate_count)} media object(s)")
+    print(f"{str(datetime.datetime.now())} - Finsished generating {str(generate_count)} media object(s), Total Time: {str(datetime.datetime.now() - start_time)}")
 
 load_dotenv()
 working_dir=os.getcwd()

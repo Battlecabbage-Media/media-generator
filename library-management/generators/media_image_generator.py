@@ -10,7 +10,9 @@ from fontTools.ttLib import TTFont, TTCollection
 import argparse
 import datetime
 import numpy as np
-
+import base64
+from mimetypes import guess_type
+import traceback
 
 # REQUIREMENTS
 # pip install matplotlib
@@ -18,7 +20,6 @@ import numpy as np
 # pip install openai
 # pip install pillow
 
-load_dotenv()
 
 # TODO:
 # 2. Implement the ability to generate a response without saving it to a file, dry run
@@ -62,7 +63,6 @@ def imageBuildList(media_directory):
             missing_images.append(json_file)
 
     return missing_images, png_files      
-
 
 
 # Generate the prompt for the image based upon the media object info
@@ -125,7 +125,7 @@ def generateImagePrompt(media_object):
     
 
 # Generate the image using the prompt
-def generateImage(file_path, image_prompt, media_object):
+def generateImage(file_path, completion, media_object):
 
     client = AzureOpenAI(
         api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
@@ -138,9 +138,9 @@ def generateImage(file_path, image_prompt, media_object):
         try:
             result = client.images.generate(
                 model=os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME"), # the name of your DALL-E 3 deployment
-                prompt=image_prompt["image_prompt"],
+                prompt=completion["image_prompt"],
                 n=1,
-                size="1024x1024" if args.low_quality else "1024x1792"
+                size="1024x1792"
             )
             break
         except Exception as e:
@@ -156,29 +156,10 @@ def generateImage(file_path, image_prompt, media_object):
     image_url = json_response["data"][0]["url"]  # extract image URL from response
     generated_image = requests.get(image_url).content  # download the image
     
+    # Build the file path for the image replacing the .json extension with /images/ID.png
     file_path=file_path.replace(f"{media_object["id"]}.json",f"/images/{media_object["id"]}.png")
 
-    #Get the directory of file path
-
-    
-    # TODO: Check if the image is letterboxed and retry if it is
-    # # Open the image
-    # img = Image.open(generated_image)
-    # # Define the section (top left x, top left y, bottom right x, bottom right y)
-    # section = (10, 10, 50, 50)
-    # # Crop the section from the image
-    # crop = img.crop(section)
-    # # Get the color of the first pixel
-    # first_pixel_color = crop.getpixel((0, 0))
-    # # Check if all pixels have the same color
-    # is_same_color = all(crop.getpixel((x, y)) == first_pixel_color for x in range(crop.width) for y in range(crop.height))
-    # if is_same_color:
-    #     print(f"Image {media_object['id']} is letterboxed, retrying.")
-    #     #Resubmit the image. There could be concern of an infinite loop here, but the likelihood is low since letterboxing rarely happens
-    #     generateImage(file_path, image_prompt, media_object) 
-
-     # Create the images directory if it does not exist
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True) # Create the images directory if it does not exist
     try:
         with open(file_path, "wb") as image_file:
             image_file.write(generated_image)
@@ -189,16 +170,18 @@ def generateImage(file_path, image_prompt, media_object):
     
 
 # Add various text to the image and resize
-def processImage(completion, media_object, image_path):
+def processImage(image_path, completion, media_object):
 
     # Get a list of all font files
     font_files = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
 
     # The name of the font you're looking for
     font_name_to_find = completion["font"]
+    
+    # Start with arial as the default font
+    font_path="arial.ttf"
 
     # Get the path of the font
-    font_path = None
     for font_file in font_files:
         try:
             # Try to open as a single font file
@@ -206,6 +189,7 @@ def processImage(completion, media_object, image_path):
             if font['name'].getDebugName(1) == font_name_to_find:
                 font_path = font_file
                 break
+            
         except:
             # If that fails, try to open as a font collection file
             font_collection = TTCollection(font_file)
@@ -213,165 +197,163 @@ def processImage(completion, media_object, image_path):
                 if font['name'].getDebugName(1) == font_name_to_find:
                     font_path = font_file
                     break
-
-    if font_path is None:
-        font_path="arial.ttf"
-
-    # Open an image file for manipulation
-    with Image.open(image_path) as img:
-        
-        img_w, img_h = img.size
-
-        # Get a random layout from posters.json
-        with open(templates_base + "posters.json") as json_file:
-            poster_json=json.load(json_file)
-            poster_layout=random.choice(poster_json["layouts"])
-
-        # loop through the layout and print out each text_type
-        for text_type in poster_layout:
-            layout = poster_layout[text_type]
             
-            # Build out a cast layout if the text_type is cast from the template
-            if text_type == "cast":
-                cast_type = layout[0]["cast_type"]
-                text_string = ""
-                if cast_type == "directors":
-                    text_string += "Directed By "
-                    for director in media_object["prompt_list"]["directors"]:
-                        text_string += director + "   "
-                elif cast_type == "actors":
-                    actor_count=0
-                    for actor in media_object["prompt_list"]["actors"]:
-                        text_string += actor + "   "
-                        actor_count += 1
-                    if actor_count == 1:
-                        text_string = "Starring: " + text_string
+
+    # Open prompt file and parse the prompt
+    with open(templates_base + "prompts.json") as json_file:
+        prompt_json=json.load(json_file)
+    
+    prompt=prompt_json["vision"][0]
+    start_index = prompt.find("{")
+    while start_index != -1:
+        end_index = prompt.find("}")
+        key = prompt[start_index+1:end_index]
+        key_value = media_object[key] if key in media_object else completion[key] # Value for tempalte replacement should exist in either media_object or completion
+        prompt = prompt.replace("{"+key+"}", key_value,1)
+        start_index = prompt.find("{")
+    
+    # Prompt sent to GPT-4 Vision API
+    #prompt = f"Movie Title: '{media_object['title']}' \n Title Font: '{media_object['image_font']}'" 
+
+    # Guess the MIME type of the image based on the file extension
+    mime_type, _ = guess_type(image_path)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'  # Default MIME type if none is found
+
+    # Read and encode the image file
+    with open(image_path, "rb") as image_file:
+        base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+
+    api_base = os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
+    api_key=os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
+    deployment_name = os.getenv("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
+    api_version = os.getenv("AZURE_OPENAI_GPT4_VISION_API_VERSION")
+
+    client = AzureOpenAI(
+        api_key=api_key,  
+        api_version=api_version,
+        base_url=f"{api_base}openai/deployments/{deployment_name}/extensions",
+    )
+
+    try:
+
+        response = client.chat.completions.create(
+            model=deployment_name,
+            messages=[
+                { "role": "system", "content": prompt_json["vision_system"] },
+                { "role": "user", "content": [  
+                    { 
+                        "type": "text", 
+                        "text": prompt 
+                    },
+                    { 
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_encoded_data}"
+                        }
+                    }
+                ] } 
+            ],
+            max_tokens=2000 
+        )
+
+        vision_completion = response.choices[0].message.content
+
+        # Find the start and end index of the json object
+        start_index = vision_completion.find("{")
+        end_index = vision_completion.find("}")
+        vision_completion = json.loads(vision_completion[start_index:end_index+1])
+        print(vision_completion)
+        text_string = media_object["title"]
+    
+        # Randomly choose to uppercase the text
+        uppercase_chance = random.randint(1, 10)
+        if uppercase_chance == 1:
+            text_string = text_string.upper()
+
+        # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
+        delimiter = ":"
+        text_list = text_string.split(delimiter)
+        # If the count of the delimiter in the string is 1 then add the delimtier back to the string
+        if text_string.count(delimiter) == 1:
+            text_list[0] += delimiter
+        max_text = max(text_list, key=len)
+
+        # Open the image file for manipulation
+        with Image.open(image_path) as img:
+            
+            img_w, img_h = img.size
+            draw = ImageDraw.Draw(img)
+
+            fontsize = 1  # starting font size
+            font = ImageFont.truetype(font_path, fontsize)
+            # Find font size to fit the text based upon fraction of the image width and biggest string section
+            scale=.85
+            while font.getlength(max_text) < scale*img_w:
+                # iterate until the text size is just larger than the criteria
+                fontsize += 1
+                font = ImageFont.truetype(font_path, fontsize)
+            
+            # Decrement to be sure it is less than criteria and styled
+            fontsize -= 1
+            font = ImageFont.truetype(font_path, fontsize)
+            
+            # The height of the font is the delta of its ascent and descent
+            ascent, descent = font.getmetrics()
+            font_height = ascent - descent
+
+            section_top =  vision_completion["location_padding"]
+            section_middle = (img_h / 2) - (font_height * len(text_list) + (20 * len(text_list))) # Center of the image but offset by font, line count and general padding
+            section_bottom = img_h - (img_h / 8)
+            section_bottom = section_bottom - font_height if len(text_list) > 1 else section_bottom # shave off one font height if there are two lines of text
+            y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
+
+            w = font.getlength(max_text)
+            w_placement=(img_w-w)/2
+
+            line_count = 1
+            for text_line in text_list:
+
+                # remove proceeding and trailing spaces
+                text_line = text_line.strip()
+            
+                # Get the starting location for the text based upon the layout
+                y_location = vision_completion["location"] if "location" in vision_completion else "top"
+                if line_count == 1:
+                    y_placement = y_placements[y_location]
                 else:
-                    for actor in media_object["prompt_list"]["actors"]:
-                        text_string += actor + "   "
-                    text_string += ":: Directed By "
-                    for director in media_object["prompt_list"]["directors"]:
-                        text_string += director + "   "
+                    y_placement = y_placements[y_location] + (font_height * (line_count - 1)) + (font_height * .55) 
+
+                font_color = vision_completion["font_color"] if "font_color" in vision_completion else "#000000"
+                stroke_color = "#111111" if font_color > "#999999" else "#DDDDDD"
+
+                # put the text on the image
+                draw.text((w_placement, y_placement), text_line, fill=font_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') 
+                line_count += 1
+
+            # TODO rethink the qhole quality thing, if even needed.
+            if not args.low_quality:
+                img = img.resize((724, 1267))
+                img = img.convert('RGB')
+                img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=75)
+                #Delete the original png file
+                os.remove(image_path)
             else:
-                text_string = media_object[text_type]
-            
-            # Randomly choose to uppercase the text
-            uppercase_chance = random.randint(1, 10)
-            if uppercase_chance == 1:
-                text_string = text_string.upper()
+                img.save(image_path, 'PNG')
 
-            writeText(img, img_w, img_h, text_string, layout[0], font_path, text_type)
-
-        # TODO rethink the qhole quality thing, if even needed.
-        if not args.low_quality:
-            img = img.resize((724, 1267))
-            img = img.convert('RGB')
-            img.save(image_path.replace('png', 'jpg'), 'JPEG', quality=75)
-            #Delete the original png file
-            os.remove(image_path)
-        else:
-            img.save(image_path, 'PNG')
-
-    return True
-
-def writeText(img, img_w, img_h, text_string, layout, font_path, text_type): 
+        return True
     
-    draw = ImageDraw.Draw(img)
-
-    # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
-    text_list = text_string.split(layout["delimiter"])
-    max_text = max(text_list, key=len)
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        traceback.print_exc()
+        return False
     
-    # If the count of the delimiter in the string is 1 then add the delimtier back to the string
-    if text_string.count(layout["delimiter"]) == 1:
-        text_list[0] += layout["delimiter"]
-
-    fontsize = 1  # starting font size
-    font = ImageFont.truetype(font_path, fontsize)
-
-    # Find  font size to fit the text based upon fraction of the image width and biggest string section
-    while font.getlength(max_text) < layout["scale"]*img_w:
-        # iterate until the text size is just larger than the criteria
-        fontsize += 1
-        font = ImageFont.truetype(font_path, fontsize)
-    
-    # Decrement to be sure it is less than criteria and styled
-    fontsize -= layout["decrement"]
-    font = ImageFont.truetype(font_path, fontsize)
-
-    ascent, descent = font.getmetrics()
-    # The height of the font is the delta of its ascent and descent
-    font_height = ascent - descent
-
-    section_top = 25 # Pad off the top of the image
-    section_middle = (img_h / 2) - (font_height * len(text_list) + (layout["line_padding"] * len(text_list))) # Center of the image but offset by font and line count
-    section_bottom = img_h - (img_h / 8) # bottom 1/8th of image
-    y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
-
-    w = font.getlength(max_text)
-    w_placement=(img_w-w)/2
-    # Get the font's ascent and descent
-
-    text_count = 1
-    for text_line in text_list:
-
-        # remove proceeding and trailing spaces
-        text_line = text_line.strip()
-        
-        # Get the starting location for the text based upon the layout
-        y_start = y_placements[layout["y_placement"]]
-        
-        y_placement = y_start + ((font_height) * (text_count - 1))
-        if text_count > 1:
-            y_placement = y_placement + (layout["line_padding"] * (text_count - 1))
-
-        sample_box = (w_placement, y_placement, w_placement + w, y_placement + font_height)
-        crop = img.crop(sample_box)
-        pixels = np.array(crop)
-        average_color = pixels.mean(axis=(0, 1))
-
-        average_color = tuple(map(int, average_color))
-        # Turn the rgb color into grayscale
-
-        color_average = sum(average_color) / len(average_color)
-
-        # Set the font color to the complimentary color if a title else to the average color contrast
-        if text_type == "title":
-            case = {
-                color_average < 60: "#9A9A9A",
-                color_average > 200: "#101010",
-                True: "#CDCDCD"
-
-            }
-            stroke_color = case.get(True)
-
-            denominator = 275 if color_average > 160 else 235
-            complimentary_color = [denominator - average_color[0], denominator - average_color[1], denominator - average_color[2]]
-            hex_color = '#{:02x}{:02x}{:02x}'.format(complimentary_color[0], complimentary_color[1], complimentary_color[2])
-        else:
-            if color_average < 60:
-                r_comp, g_comp, b_comp = 245, 245, 245
-                stroke_color="#9A9A9A"
-            elif color_average > 200:
-                r_comp, g_comp, b_comp = 125, 125, 125
-                stroke_color="#101010"
-            else:
-                r_comp, g_comp, b_comp = 30, 30, 30  
-                stroke_color="#CDCDCD"
-
-            hex_color = '#{:02x}{:02x}{:02x}'.format(r_comp, g_comp, b_comp)
-
-        draw.text((w_placement, y_placement), text_line, fill=hex_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') # put the text on the image
-        
-        text_count += 1
-
-    return img
 
 def main():
 
     processed_count=0
     created_count=0
-
+    start_time=datetime.datetime.now()
     # Get list of all media objects missing a poster, and orphaned png posters files 
     # TODO variable, you know how to do it   
     missing_list, png_list = imageBuildList(os.getcwd() + "/outputs/media/generated/")
@@ -396,6 +378,7 @@ def main():
             with open(filepath, 'r') as file:
                 media_object = json.load(file)
 
+                object_start_time = datetime.datetime.now()
                 print(f"{str(datetime.datetime.now())} - Generating Image for {media_object["title"]}, ID: {media_object["id"]}")
 
                 if args.verbose:print(f"{str(datetime.datetime.now())} - Generating Image Prompt for {media_object["title"]}, ID: {media_object["id"]}")
@@ -404,8 +387,7 @@ def main():
 
                 result, image_path = generateImage(filepath, completion, media_object)
                 if not args.image_only and result == True:
-                    processImage(completion, media_object, image_path)
-                    print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]}")
+                    processImage(image_path, completion, media_object)
                     if args.verbose: print(f"Location: {str(image_path.replace('.png','.jpg'))}")
                     
                     # Save image completion and image generate date to media object file
@@ -419,6 +401,8 @@ def main():
                         file.seek(0)
                         json.dump(media_object, updated_file, indent=4)
 
+                    print(f"{str(datetime.datetime.now())} - Image created for {media_object["title"]}, Generate Time: {str(datetime.datetime.now() - object_start_time)}")
+
                     created_count+=1
                 else:
                     print(f"{str(datetime.datetime.now())} - Failed to generate image for {media_object["title"]} ID: {media_object["id"]}")
@@ -426,14 +410,13 @@ def main():
                 processed_count+=1
                 print(f"{str(datetime.datetime.now())} - Media Objects Processed: {str(processed_count)} of {str(missing_count)}")
                     
+        message = f"{str(datetime.datetime.now())} - {str(processed_count)} media objects reviewed. Total Duration: {str(datetime.datetime.now() - start_time)}"
 
-        message = f"{str(datetime.datetime.now())} - All media objects reviewed."
         if processed_count > 0: 
             message += f" Image Create Count: {str(created_count)}, Processed Count: {str(processed_count)}"
             print(message)
     else:
         print(f"{str(datetime.datetime.now())} - No media objects missing images.")
-
 
 load_dotenv()
 working_dir=os.getcwd()
