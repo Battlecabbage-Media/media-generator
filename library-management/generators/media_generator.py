@@ -116,6 +116,7 @@ def generateObject(object_prompt, object_prompt_list):
     
     media_object["object_prompt"]=object_prompt
     media_object["object_prompt_list"]=object_prompt_list
+    media_object["object_create_time"]=str(datetime.datetime.now())
     media_object["azure_openai_text_completion_endpoint"]=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
     media_object["azure_openai_text_completion_deployment_name"]=deployment_name
     media_object["azure_openai_text_completion_api_version"]=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION")
