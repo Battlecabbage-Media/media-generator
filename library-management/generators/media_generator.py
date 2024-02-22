@@ -39,7 +39,6 @@ def outputMessage(message, level):
     print(f"{str(datetime.datetime.now())} - {process_id} - {color}{message}")
     print("\033[0m", end="") # Reset color
 
-
 # Creates a random process ID for the generator
 def createProcessId():
     process_id = hashlib.md5(str(random.random()).encode()).hexdigest()[:16]
@@ -484,7 +483,7 @@ def main():
     if(args.count) and args.count.isdigit():
         generate_count=int(args.count)
     
-    outputMessage(f"Starting creation of {str(generate_count)} media object{"s" if generate_count > 1 else ""}","warning")
+    outputMessage(f"Starting creation of {str(generate_count)} media object{"s" if generate_count > 1 else ""}","")
 
     # Notify if dry run mode is enabled
     if(args.dryrun): outputMessage("Dry run mode enabled, generated media objects will not be saved","verbose")
@@ -508,7 +507,7 @@ def main():
         if args.verbose: 
             outputMessage(f"Object prompt:\n {object_prompt}","verbose")
             outputMessage(f"Template list:\n {json.dumps(object_prompt_list, indent=4)}","verbose")
-        outputMessage(f"Finished building prompt, build time: {str(datetime.datetime.now() - object_start_time)}","info")
+        outputMessage(f"Finished building prompt, build time: {str(datetime.datetime.now() - object_start_time)}","")
 
         # Submit the object prompt for completion and print the object completion when verbose mode is enabled and successful
         outputMessage(f"Submitting object prompt for completion","")
@@ -517,7 +516,7 @@ def main():
             continue
         if args.verbose:
             outputMessage(f"Object completion:\n {json.dumps(media_object, indent=4)}","verbose") # Print the completion
-        outputMessage(f"Finished generating media object '{media_object['title']}', object generate time: {str(datetime.datetime.now() - object_start_time)}","info")
+        outputMessage(f"Finished generating media object '{media_object['title']}', object generate time: {str(datetime.datetime.now() - object_start_time)}","")
 
         ### Image creation ###
         image_start_time = datetime.datetime.now()
@@ -530,7 +529,7 @@ def main():
             continue
         if args.verbose: 
             outputMessage(f"Image prompt:\n{image_completion["image_prompt"]}","verbose")
-        outputMessage(f"Image prompt generated for '{media_object["title"]}', image prompt generate time: {str(datetime.datetime.now() - image_start_time)}","info")
+        outputMessage(f"Image prompt generated for '{media_object["title"]}', image prompt generate time: {str(datetime.datetime.now() - image_start_time)}","")
 
 
         # Generate the image and if successful, add text to the image and save it as well as media object
@@ -543,7 +542,7 @@ def main():
                 outputMessage(f"Error processing image for '{media_object["title"]}'","error")
                 continue
             else:
-                outputMessage(f"Image created for '{media_object["title"]}', image generate time: {str(datetime.datetime.now() - image_start_time)}","info")
+                outputMessage(f"Image created for '{media_object["title"]}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
                 media_object["image_generation_time"] = str(datetime.datetime.now())
                 media_object["image_prompt"] = image_completion["image_prompt"].replace("'", "\"")
                 media_object["image_font"] = image_completion["font"] if "font" in image_completion else "arial"
@@ -564,7 +563,7 @@ def main():
                         os.remove(item_path)
         i+=1
     process_id = main_id
-    outputMessage(f"Finished generating {str(success_count)} media object{"s" if success_count > 1 else ""} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","warning")
+    outputMessage(f"Finished generating {str(success_count)} media object{"s" if success_count > 1 else ""} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","success")
 
 load_dotenv()
 working_dir=os.getcwd()
@@ -575,7 +574,7 @@ outputs_dir="outputs/media/generated/"
 parser = argparse.ArgumentParser(description="Provide various run commands.")
 # Argument for the count of media objects to generate
 parser.add_argument("-c", "--count", help="Number of media objects to generate")
-# Argument for the dry run, to generate a response without saving it to a file
+# Argument for the dry run, to generate a response without saving it to a file TODO, actually make this do something
 parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, generate a response without saving it to a file")
 # Argument for verbose mode, to display object outputs
 parser.add_argument("-v", "--verbose", action='store_true', help="Show details of steps and outputs like prompts and completions")
