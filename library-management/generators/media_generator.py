@@ -266,11 +266,11 @@ def generateImage(image_completion, media_object):
             )
             break
         except Exception as e:
-            outputMessage(f"Attempt {_+1} of {retries} failed to generate image for '{media_object["title"]}'.","warning")
+            outputMessage(f"Attempt {_+1} of {retries} failed to generate image for '{media_object['title']}'.","warning")
             if args.verbose: print(e)
             continue
     else:
-        outputMessage(f"Error generating image for '{media_object["title"]}' after {retries} attempts","error")
+        outputMessage(f"Error generating image for '{media_object['title']}' after {retries} attempts","error")
         return False
 
     # Grab the first image from the response
@@ -483,7 +483,7 @@ def main():
     if(args.count) and args.count.isdigit():
         generate_count=int(args.count)
     
-    outputMessage(f"Starting creation of {str(generate_count)} media object{"s" if generate_count > 1 else ""}","")
+    outputMessage(f"Starting creation of {str(generate_count)} media object{'s' if generate_count > 1 else ''}","")
 
     # Notify if dry run mode is enabled
     if(args.dryrun): outputMessage("Dry run mode enabled, generated media objects will not be saved","verbose")
@@ -520,29 +520,29 @@ def main():
 
         ### Image creation ###
         image_start_time = datetime.datetime.now()
-        outputMessage(f"Creating image for '{media_object["title"]}'","")
+        outputMessage(f"Creating image for '{media_object['title']}'","")
 
         # Generate the image prompt and print it when verbose mode is enabled and successful
-        outputMessage(f"Generating image prompt for '{media_object["title"]}'","") 
+        outputMessage(f"Generating image prompt for '{media_object['title']}'","") 
         image_completion=generateImagePrompt(media_object)
         if not image_completion:
             continue
         if args.verbose: 
-            outputMessage(f"Image prompt:\n{image_completion["image_prompt"]}","verbose")
-        outputMessage(f"Image prompt generated for '{media_object["title"]}', image prompt generate time: {str(datetime.datetime.now() - image_start_time)}","")
+            outputMessage(f"Image prompt:\n{image_completion['image_prompt']}","verbose")
+        outputMessage(f"Image prompt generated for '{media_object['title']}', image prompt generate time: {str(datetime.datetime.now() - image_start_time)}","")
 
 
         # Generate the image and if successful, add text to the image and save it as well as media object
-        outputMessage(f"Generating image for '{media_object["title"]}' from prompt","")
+        outputMessage(f"Generating image for '{media_object['title']}' from prompt","")
         generated_image = generateImage(image_completion, media_object)
         if generated_image:
             # Add text to image
             image = processImage(generated_image, image_completion, media_object)
             if not image:
-                outputMessage(f"Error processing image for '{media_object["title"]}'","error")
+                outputMessage(f"Error processing image for '{media_object['title']}'","error")
                 continue
             else:
-                outputMessage(f"Image created for '{media_object["title"]}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
+                outputMessage(f"Image created for '{media_object['title']}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
                 media_object["image_generation_time"] = str(datetime.datetime.now())
                 media_object["image_prompt"] = image_completion["image_prompt"].replace("'", "\"")
                 media_object["image_font"] = image_completion["font"] if "font" in image_completion else "arial"
@@ -556,14 +556,14 @@ def main():
                 if item_path: # Json saved successfully, save image
                     image_path = saveItem(image, "images", media_object["id"]) # Save Poster Image
                     if image_path: # Image saved successfully
-                        outputMessage(f"Media created: '{media_object["title"]}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
+                        outputMessage(f"Media created: '{media_object['title']}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
                         success_count+=1
                     else: # Image failed to save, deleting media object
-                        outputMessage(f"Error saving image for '{media_object["title"]}', cleaning up media json created","success")
+                        outputMessage(f"Error saving image for '{media_object['title']}', cleaning up media json created","success")
                         os.remove(item_path)
         i+=1
     process_id = main_id
-    outputMessage(f"Finished generating {str(success_count)} media object{"s" if success_count > 1 else ""} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","success")
+    outputMessage(f"Finished generating {str(success_count)} media object{'s' if success_count > 1 else ''} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","success")
 
 load_dotenv()
 working_dir=os.getcwd()
