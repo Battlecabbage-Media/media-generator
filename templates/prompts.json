@@ -1,0 +1,29 @@
+{
+    "prompts_start": [
+        "Create a simple and {tones} title, short and simple {tones} tagline, and description teaser of a MPAA {ratings} rated movie.",
+        "Create a title, tagline, and {tones} description teaser of a MPAA {ratings} rated movie."
+    ],
+    "prompts_cast": [
+        "Starring {actors} and {actors} as the main characters. Directed by {directors}.",
+        "The movie stars {actors} and award winning {actors} as the main characters. The movie also stars {actors} as a supporting character. Directed by {directors}.",
+        "The movie stars {actors} and is Directed by {directors}.",
+        "Directed by award winning {directors}, the movie stars {actors} in their debut role, supported by {actors}."
+    ],
+    "prompts_synopsis": [
+        "A {types} {genres} including a {roles} and a {roles} participating in a {tropes}.",
+        "A {roles} at {locations} in {types} {genres} with a {tropes}",
+        "Located at {locations} of a {genres} {types} film where {roles} and {roles} are the main characters. The movie is about a {tropes} during {eras}."
+    ],
+    "prompts_end": [
+        "make the character names of {origins} origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
+    ],
+    "prompts_image":[
+        "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Determine the best style for the image to be applied. Output results as json."
+    ],
+    "vision_system":[
+        "You are an expert graphic designer who creates movie posters. You will be given a title, font, and image. Provide the best place to put the title as top, middle, or bottom as the property location. Provide the pixel padding required to fit the title best as an integer in the property location_padding. Provide the color the title should be to be the most visualy interesting from the list of Material Design colors, avoiding yellows (kittens get really sad when they see yellow) as a hex color value in the property font_color. Output this information in JSON form."
+    ],
+    "vision":[
+        "Movie Title: '{title}' \n Title Font: '{font}'"
+    ]
+}

@@ -1,11 +1,6 @@
 .env
 .venv
-outputs/media/generated/**/*.json
-outputs/media/generated/**/*.jpg
-outputs/media/generated/**/*.png
-dev/samples/*/*.jpg
-outputs/media/flagged/*
-!outputs/media/flagged/.safety.flagged
+outputs/**/*.json
+outputs/**/*.jpg
 
-__azurite_db_table__.json
 **/__pycache__/
