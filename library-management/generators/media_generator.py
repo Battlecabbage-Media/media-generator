@@ -18,6 +18,11 @@ import traceback
 # pip install python-dotenv
 # pip install openai
 
+def envCheck(env_var):
+    if os.getenv(env_var) is None:
+        outputMessage(f"Environment variable {env_var} not set. Check '.example.env' for details.","error")
+        exit(1)
+
 # Output message function to print the message with a timestamp and process ID
 def outputMessage(message, level):
     
@@ -473,7 +478,7 @@ def main():
 
     start_time=datetime.datetime.now()
 
-    global process_id 
+    #global process_id 
     process_id = createProcessId()
     # Create a main_id to store the original process_id
     main_id = process_id
@@ -565,7 +570,22 @@ def main():
     process_id = main_id
     outputMessage(f"Finished generating {str(success_count)} media object{'s' if success_count > 1 else ''} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","success")
 
+process_id = ""
 load_dotenv()
+#Basic environment variable check before execution of anything
+envCheck("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY")
+envCheck("AZURE_OPENAI_COMPLETION_API_VERSION")
+envCheck("AZURE_OPENAI_COMPLETION_ENDPOINT")
+envCheck("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
+envCheck("AZURE_OPENAI_DALLE3_ENDPOINT_KEY")
+envCheck("AZURE_OPENAI_DALLE3_API_VERSION")
+envCheck("AZURE_OPENAI_DALLE3_ENDPOINT")
+envCheck("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME")
+envCheck("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
+envCheck("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
+envCheck("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
+envCheck("AZURE_OPENAI_GPT4_VISION_API_VERSION")
+
 working_dir=os.getcwd()
 templates_base=working_dir + "/library-management/templates/"
 outputs_dir="outputs/media/generated/"
