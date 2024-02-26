@@ -81,11 +81,12 @@ class processHelper:
         if result == True:
             try:
                 if type == "images":
-                    item = item.convert('RGB').resize((724, 1267))
+                    #TODO: Move these to the classes instead of having a separate "generic" function
+                    item = item.completed_poster.convert('RGB').resize((724, 1267))
                     item.save(item_path, 'JPEG', quality=75)
                 elif type == "json":
                     with open(item_path, "w") as json_file:
-                        json.dump(item, json_file)
+                        json.dump(item.to_json(), json_file)
                         json_file.write("\n")
                 return item_path
             except Exception as e:
@@ -126,10 +127,37 @@ class media:
         self.create_time = datetime.datetime.now()
 
         # Anything with underscore will be ignored during serialization
+        # Actually it won't be "ignored", I just won't add it to the "to_json" method...
         self._process = process
         self._prompt_file_path = prompt_file_path
         self._templates_base = templates_base
         self._verbose = verbose
+
+    def to_json(self):
+        return {
+            "media_id": self.media_id,
+            "title": self.title,
+            "tagline": self.tagline,
+            "mpaa_rating": self.mpaa_rating,
+            "description": self.description,
+            "critic_score": self.critic_score,
+            "critic_review": self.critic_review,
+            "popularity_score": self.popularity_score,
+            "genre": self.genre,
+            "object_prompt": self.object_prompt,
+            "object_prompt_list": self.object_prompt_list,
+            "object_prompt_temperature": self.object_prompt_temperature,
+            "azure_openai_text_completion_endpoint": self.azure_openai_text_completion_endpoint,
+            "azure_openai_text_completion_deployment_name": self.azure_openai_text_completion_deployment_name,
+            "azure_openai_text_completion_api_version": self.azure_openai_text_completion_api_version,
+            "image_generation_time": self.image_generation_time,
+            "image_prompt": self.image_prompt,
+            "image_font": self.image_font,
+            "azure_openai_image_model_endpoint": self.azure_openai_image_model_endpoint,
+            "azure_openai_image_model_deployment": self.azure_openai_image_model_deployment,
+            "azure_openai_image_model_api_version": self.azure_openai_image_model_api_version,
+            "create_time": self.create_time
+        }
 
     # Simply grabs a random value from the template file provided
     def getTemplateValue(self, template):
@@ -215,7 +243,7 @@ class media:
                 self.mpaa_rating_content = completion["rating_content"] if "rating_content" in completion else "NO RATING CONTENT"
                 self.critic_score = completion["critic_score"] if "critic_score" in completion else "NO CRITIC SCORE"
                 self.critic_review = completion["critic_review"] if "critic_review" in completion else "NO CRITIC REVIEW"
-                self.genre = completion["genre"] if "genre" in completion else "NO GENRE"
+                self.genre = self.object_prompt_list["genres"][0] if "genres" in self.object_prompt_list else "NO GENRE"
                 self.description = completion["description"]
                 self.poster_url = "movie_poster_url.jpeg"
                 return True
@@ -377,13 +405,24 @@ class image:
             prompt_json=json.load(json_file)
         
         prompt=prompt_json["vision"][0]
-        start_index = prompt.find("{")
-        while start_index != -1:
-            end_index = prompt.find("}")
-            key = prompt[start_index+1:end_index]
-            key_value = self.media_object[key] if key in self.media_object else self.poster_prompt[key] # Value for template replacement should exist in either media_object or completion
-            prompt = prompt.replace("{"+key+"}", key_value,1)
-            start_index = prompt.find("{")
+
+        # Making this less dynamic to keep myself sane
+
+        prompt = prompt.replace("{title}", self.media_object.title)
+        prompt = prompt.replace("{font}", self.media_object.image_font if self.media_object.image_font != "" else self.poster_prompt["font"])
+
+        # start_index = prompt.find("{")
+        # while start_index != -1:
+        #     end_index = prompt.find("}")
+        #     key = prompt[start_index+1:end_index]
+        #     key_value = ""
+        #     try:
+        #         key_value = self.media_object[key]
+        #     except:
+        #         key_value = self.poster_prompt[key]
+        #          # Value for template replacement should exist in either media_object or completion
+        #     prompt = prompt.replace("{"+key+"}", key_value,1)
+        #     start_index = prompt.find("{")
 
         mime_type = "image/png"
         base64_encoded_data = base64.b64encode(self.generated_image.read()).decode('utf-8')
@@ -611,7 +650,7 @@ def main():
                 # Save the media object and image to the outputs directory
                 item_path = process.saveItem(media_object, "json") # Save Media JSON
                 if item_path: # Json saved successfully, save image
-                    image_path = process.saveItem(image, "images") # Save Poster Image
+                    image_path = process.saveItem(image_object, "images") # Save Poster Image
                     if image_path: # Image saved successfully
                         process.outputMessage(f"Media created: '{media_object.title}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
                         success_count+=1
