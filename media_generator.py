@@ -101,6 +101,75 @@ class processHelper:
         end_index = text.find(end)
         return text[start_index:end_index+1]
 
+# Parent class for the Azure OpenAI models
+class aoaiModel():
+
+    def __init__(self):
+        self.endpoint = ""
+        self.key = ""
+        self.api_version = ""
+        self.deployment_name = ""
+        self.model = ""
+        self.client = None
+    
+    def clean_json(self):
+        # Return a clean json object for saving details without sensitive information
+        return {
+            "endpoint": self.endpoint,
+            "api_version": self.api_version,
+            "deployment_name": self.deployment_name,
+            "model": self.model
+        }
+
+# Child class for the Azure OpenAI Text model
+class aoaiText(aoaiModel):
+    def __init__(self):
+        super().__init__()
+        self.endpoint = os.getenv("AZURE_OPENAI_TEXT_ENDPOINT")
+        self.key = os.getenv("AZURE_OPENAI_TEXT_ENDPOINT_KEY")
+        self.api_version = os.getenv("AZURE_OPENAI_TEXT_API_VERSION")
+        self.deployment_name = os.getenv("AZURE_OPENAI_TEXT_DEPLOYMENT_NAME")
+        self.model = os.getenv("AZURE_OPENAI_TEXT_MODEL")
+
+        self.client = AzureOpenAI(
+            api_key=self.key,  
+            api_version=self.api_version,
+            azure_endpoint=self.endpoint
+        )
+
+# Child class for the Azure OpenAI Image model
+class aoaiImage(aoaiModel):
+    def __init__(self):
+        super().__init__()
+        self.endpoint = os.getenv("AZURE_OPENAI_IMAGE_ENDPOINT")
+        self.key = os.getenv("AZURE_OPENAI_IMAGE_ENDPOINT_KEY")
+        self.api_version = os.getenv("AZURE_OPENAI_IMAGE_API_VERSION")
+        self.deployment_name = os.getenv("AZURE_OPENAI_IMAGE_DEPLOYMENT_NAME")
+        self.model = os.getenv("AZURE_OPENAI_IMAGE_MODEL")
+
+        self.client = AzureOpenAI(
+            api_key=self.key,  
+            api_version=self.api_version,
+            azure_endpoint=self.endpoint
+        )
+
+# Child class for the Azure OpenAI Vision model
+class aoaiVision(aoaiModel):
+    def __init__(self):
+        super().__init__()
+        self.endpoint = os.getenv("AZURE_OPENAI_VISION_ENDPOINT")
+        self.key = os.getenv("AZURE_OPENAI_VISION_ENDPOINT_KEY")
+        self.api_version = os.getenv("AZURE_OPENAI_VISION_API_VERSION")
+        self.deployment_name = os.getenv("AZURE_OPENAI_VISION_DEPLOYMENT_NAME")
+        self.model = os.getenv("AZURE_OPENAI_VISION_MODEL")
+
+        self.client = AzureOpenAI(
+            api_key=self.key,  
+            api_version=self.api_version,
+            base_url=f"{self.endpoint}openai/deployments/{self.deployment_name}/extensions"
+        )
+
+# Class for the media object
 class media:   
     def __init__(self, process: processHelper, prompt_file_path, templates_base, verbose=False):
         self.media_id = 0
@@ -108,22 +177,24 @@ class media:
         self.tagline = ""
         self.mpaa_rating = ""
         self.description = ""
-        self.critic_score = 0.0
-        self.critic_review = ""
         self.popularity_score = round(random.uniform(1, 10), 1)
         self.genre = ""
-        self.object_prompt = ""
+        self.movie_prompt = {}
+        #self.movie_prompt_temperature = round(random.uniform(0.6,1.1),2)
+        # TODO add critic list
+        self.critic_prompt = {}
+        self.critic_score = 0.0
+        self.critic_review = "NO CRITIC REVIEW"
         self.object_prompt_list = {}
-        self.object_prompt_temperature = round(random.uniform(0.6,1.1),2)
-        self.azure_openai_text_completion_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
-        self.azure_openai_text_completion_deployment_name = os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
-        self.azure_openai_text_completion_api_version = os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION")
+        # Setting some Models stuff
+        self.aoai_text = aoaiText()
+        self.aoai_image = aoaiImage()
+        self.aoai_vision = aoaiVision()
+        # TODO ADD image list
         self.image_generation_time = datetime.datetime.now() 
         self.image_prompt = ""
         self.image_font = ""
-        self.azure_openai_image_model_endpoint = os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
-        self.azure_openai_image_model_deployment = os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
-        self.azure_openai_image_model_api_version = os.getenv("AZURE_OPENAI_DALLE3_API_VERSION")
+
         self.create_time = datetime.datetime.now()
 
         # Anything with underscore will be ignored during serialization
@@ -144,18 +215,17 @@ class media:
             "critic_review": self.critic_review,
             "popularity_score": self.popularity_score,
             "genre": self.genre,
-            "object_prompt": self.object_prompt,
+            "movie_prompt": self.movie_prompt,
+            # REMOVE THIS AFTER TESTING
+            #"movie_prompt_temperature": self.movie_prompt_temperature,
+            "critic_prompt": self.critic_prompt,
             "object_prompt_list": self.object_prompt_list,
-            "object_prompt_temperature": self.object_prompt_temperature,
-            "azure_openai_text_completion_endpoint": self.azure_openai_text_completion_endpoint,
-            "azure_openai_text_completion_deployment_name": self.azure_openai_text_completion_deployment_name,
-            "azure_openai_text_completion_api_version": self.azure_openai_text_completion_api_version,
+            "aoai_text": self.aoai_text.clean_json(),
+            "aoai_image": self.aoai_image.clean_json(),
+            "aoai_vision": self.aoai_vision.clean_json(),
             "image_generation_time": self.image_generation_time,
             "image_prompt": self.image_prompt,
             "image_font": self.image_font,
-            "azure_openai_image_model_endpoint": self.azure_openai_image_model_endpoint,
-            "azure_openai_image_model_deployment": self.azure_openai_image_model_deployment,
-            "azure_openai_image_model_api_version": self.azure_openai_image_model_api_version,
             "create_time": self.create_time
         }
 
@@ -185,19 +255,24 @@ class media:
             self.object_prompt_list[text].append(replace_value)
             start_index = template.find("{")
         return template
+    
     # Builds the prompt from the prompt template selected
     def generateObjectPrompt(self):
         prompt_file_path = self._prompt_file_path
         try:
-            prompt_file = open(prompt_file_path, 'r')
-                    # Load the prompt template file and parse the prompt template
-            prompt_json=json.load(prompt_file)
-            prompt_file.close()
-            prompt_start=self.parseTemplate(random.choice(prompt_json["prompts_start"]))
-            prompt_cast=self.parseTemplate(random.choice(prompt_json["prompts_cast"]))
-            prompt_synopsis=self.parseTemplate(random.choice(prompt_json["prompts_synopsis"]))
-            prompt_end=self.parseTemplate(random.choice(prompt_json["prompts_end"]))
-            self.object_prompt=f"{prompt_start} {prompt_cast} {prompt_synopsis} {prompt_end}"
+            with open(prompt_file_path) as prompt_file:
+                prompts_json=json.load(prompt_file)
+
+            # REMOVE THIS AFTER TESTING
+            #prompt_movie_system=self.parseTemplate(random.choice(prompts_json["movie_system"]))
+            #prompt_movie=self.parseTemplate(random.choice(prompts_json["movie"]))
+            #prompt_start=self.parseTemplate(random.choice(prompt_json["prompts_start"]))
+            #prompt_cast=self.parseTemplate(random.choice(prompt_json["prompts_cast"]))
+            #prompt_synopsis=self.parseTemplate(random.choice(prompt_json["prompts_synopsis"]))
+            #prompt_end=self.parseTemplate(random.choice(prompt_json["prompts_end"]))
+            #self.object_prompt=f"{prompt_start} {prompt_cast} {prompt_synopsis} {prompt_end}"
+            self.movie_prompt["movie_system"] = self.parseTemplate(random.choice(prompts_json["movie_system"]))
+            self.movie_prompt["movie"]=self.parseTemplate(random.choice(prompts_json["movie"]))
             return True
         except IOError as e:
             self._process.outputMessage(f"Error opening prompt file. {prompt_file_path}. Check that it exists!", "error")
@@ -212,16 +287,27 @@ class media:
     # Submits the prompt to the API and returns the response as a formatted json object
     def generateObject(self):
 
-        # Create the AzureOpenAI client
-        client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
-            api_version=self.azure_openai_text_completion_api_version,
-            azure_endpoint = self.azure_openai_text_completion_endpoint
-        )
+        # Create a text model object
+        text_model = aoaiText()
+
+        # REMOVE THIS AFTER TESTING
+        # # Create the AzureOpenAI client
+        # client = AzureOpenAI(
+        #     api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
+        #     api_version=self.azure_openai_text_completion_api_version,
+        #     azure_endpoint = self.azure_openai_text_completion_endpoint
+        # )
         
         # Send the prompt to the API
         try:
-            response = client.chat.completions.create(model=self.azure_openai_text_completion_deployment_name, messages=[{"role": "user", "content":self.object_prompt}], max_tokens=600, temperature=self.object_prompt_temperature) # Going with random temperature for funsies
+            self.movie_prompt["prompt_temperature"] = round(random.uniform(0.6,1.1),2) # Generate a random movie prompt temperature for funsies
+            response = text_model.client.chat.completions.create(
+                model=text_model.deployment_name, 
+                messages=[
+                    { "role": "system", "content": self.movie_prompt["movie_system"]},
+                    {"role": "user", "content":self.movie_prompt["movie"]}
+                ],
+                max_tokens=600, temperature=self.movie_prompt["prompt_temperature"])
         except Exception as e:
             self._process.outputMessage(f"Error generating object : {e}", "error")
             if self._verbose: traceback.print_exc()
@@ -241,8 +327,8 @@ class media:
                 self.tagline = completion["tagline"]
                 self.mpaa_rating = completion["mpaa_rating"] if "mpaa_rating" in completion else "NR"
                 self.mpaa_rating_content = completion["rating_content"] if "rating_content" in completion else "NO RATING CONTENT"
-                self.critic_score = completion["critic_score"] if "critic_score" in completion else "NO CRITIC SCORE"
-                self.critic_review = completion["critic_review"] if "critic_review" in completion else "NO CRITIC REVIEW"
+                #self.critic_score = completion["critic_score"] if "critic_score" in completion else "NO CRITIC SCORE"
+                #self.critic_review = completion["critic_review"] if "critic_review" in completion else "NO CRITIC REVIEW"
                 self.genre = self.object_prompt_list["genres"][0] if "genres" in self.object_prompt_list else "NO GENRE"
                 self.description = completion["description"]
                 self.poster_url = "movie_poster_url.jpeg"
@@ -254,6 +340,7 @@ class media:
             self._process.outputMessage(f"Error parsing object completion: {completion}","error")
             return False
 
+# Class for the image object
 class image:
     def __init__(self, media_object: media):
         self.media_object = media_object
@@ -295,8 +382,11 @@ class image:
             process.outputMessage(f"An error occurred: {e}","error")
             return False
 
-        prompt_json=json.load(prompt_file)
-        prompt_file.close()
+        with open(prompt_file_path) as prompt_file:
+            prompt_json=json.load(prompt_file)
+        # REMOVE THIS AFTER TESTING
+        #prompt_json=json.load(prompt_file)
+        #prompt_file.close()
         prompt_image_json=random.choice(prompt_json["prompts_image"])
 
         #remove objects from media_object that are not needed for the prompt
@@ -306,16 +396,28 @@ class image:
         full_prompt = prompt_image_json + pruned_media_object + ",{'font_names':" + json.dumps(font_names)
         if verbose: process.outputMessage(f"Prompt\n {full_prompt}","verbose")
         
-        # Create the AzureOpenAI client for image prompt
-        client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
-            api_version=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION"),
-            azure_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
-        )
-        deployment_name=os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
+        # REMOVE THIS AFTER TESTING
+        # # Create the AzureOpenAI client for image prompt
+        # client = AzureOpenAI(
+        #     api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
+        #     api_version=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION"),
+        #     azure_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
+        # )
+        # deployment_name=os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
 
+        text_model = aoaiText()
         try:
-            response = client.chat.completions.create(model=deployment_name, messages=[{"role": "user", "content":full_prompt}], max_tokens=500, temperature=0.7)
+            # TODO implement a system message + prompt message call
+            # response = text_model.client.chat.completions.create(
+            #     model=text_model.deployment_name, 
+            #     messages=[
+            #         { "role": "system", "content": self.movie_prompt["movie_system"]},
+            #         {"role": "user", "content":self.movie_prompt["movie"]}
+            #     ],
+            #     max_tokens=600, temperature=self.movie_prompt["prompt_temperature"])
+
+            response = text_model.client.chat.completions.create(model=text_model.deployment_name, messages=[{"role": "user", "content":full_prompt}], max_tokens=500, temperature=0.7)
+            
         except Exception as e:
             process.outputMessage(f"Error generating image prompt: {e}","error")
             if verbose: traceback.print_exc()
@@ -335,17 +437,20 @@ class image:
     def generateImage(self):
         process = self.media_object._process
         verbose = self.media_object._verbose
-        client = AzureOpenAI(
-            api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
-            api_key=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT_KEY"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
-        )
+        
+        image_model = aoaiImage()
+        # REMOVE THIS AFTER TESTING
+        # client = AzureOpenAI(
+        #     api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
+        #     api_key=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT_KEY"),
+        #     azure_endpoint=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
+        # )
 
         # Attempt to generate the image up to 5 times
         retries=5
         for _ in range(retries):
             try:
-                result = client.images.generate(
+                result = image_model.client.images.generate(
                     model=os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME"), # the name of your DALL-E 3 deployment
                     prompt=self.poster_prompt["image_prompt"],
                     n=1,
@@ -411,6 +516,7 @@ class image:
         prompt = prompt.replace("{title}", self.media_object.title)
         prompt = prompt.replace("{font}", self.media_object.image_font if self.media_object.image_font != "" else self.poster_prompt["font"])
 
+        # REMOVE AFTER TESTING
         # start_index = prompt.find("{")
         # while start_index != -1:
         #     end_index = prompt.find("}")
@@ -427,21 +533,24 @@ class image:
         mime_type = "image/png"
         base64_encoded_data = base64.b64encode(self.generated_image.read()).decode('utf-8')
 
-        api_base = os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
-        api_key=os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
-        deployment_name = os.getenv("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
-        api_version = os.getenv("AZURE_OPENAI_GPT4_VISION_API_VERSION")
+        vision_model = aoaiVision()
 
-        client = AzureOpenAI(
-            api_key=api_key,  
-            api_version=api_version,
-            base_url=f"{api_base}openai/deployments/{deployment_name}/extensions",
-        )
+        # api_base = os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
+        # api_key=os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
+        # deployment_name = os.getenv("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
+        # api_version = os.getenv("AZURE_OPENAI_GPT4_VISION_API_VERSION")
+
+        # REMOVE AFTER TESTING
+        # client = AzureOpenAI(
+        #     api_key=api_key,  
+        #     api_version=api_version,
+        #     base_url=f"{api_base}openai/deployments/{deployment_name}/extensions",
+        # )
 
         try:
 
-            response = client.chat.completions.create(
-                model=deployment_name,
+            response = vision_model.client.chat.completions.create(
+                model=vision_model.deployment_name,
                 messages=[
                     { "role": "system", "content": prompt_json["vision_system"] },
                     { "role": "user", "content": [  
@@ -655,10 +764,18 @@ def main():
                         process.outputMessage(f"Media created: '{media_object.title}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
                         success_count+=1
                     else: # Image failed to save, deleting media object
-                        process.outputMessage(f"Error saving image for '{media_object.title}', cleaning up media json created","success")
+                        process.outputMessage(f"Error saving image for '{media_object.title}', cleaning up media json created","error")
+                        if os.path.exists(item_path):
+                            os.remove(item_path)
+                else: # Json failed to save
+                    process.outputMessage(f"Error saving media object '{media_object.title}', image not saved","error")
+                    if item_path and os.path.exists(item_path):
                         os.remove(item_path)
+                    continue
         i+=1
-    process.outputMessage(f"Finished generating {str(success_count)} media object{'s' if success_count > 1 else ''} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}","success")
+    
+    message_level = "success" if success_count == generate_count else "warning"
+    process.outputMessage(f"Finished generating {str(success_count)} media object{'s' if success_count > 1 else ''} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}",message_level)
 
 if __name__ == "__main__":
     main()
