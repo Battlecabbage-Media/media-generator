@@ -18,6 +18,11 @@ import traceback
 # pip install python-dotenv
 # pip install openai
 
+# NOTES
+# This thing has gotten really hacky and needs to be cleaned up. I'm not happy with the way the classes are being used and the way the functions are being called.
+# It started out very procedural because thats how I write, cabattag came in and added classes and I've been trying to make it work with the new classes and design
+# but I made it worse.
+
 # Create a class for common values and functions across the script
 class processHelper:
     
@@ -179,8 +184,9 @@ class media:
         self.description = ""
         self.popularity_score = round(random.uniform(1, 10), 1)
         self.genre = ""
+        self.prompts_temperature = round(random.uniform(0.6,1.1),2)
         self.movie_prompt = {}
-        #self.movie_prompt_temperature = round(random.uniform(0.6,1.1),2)
+        self.image_prompt = {}
         # TODO add critic list
         self.critic_prompt = {}
         self.critic_score = 0.0
@@ -192,9 +198,6 @@ class media:
         self.aoai_vision = aoaiVision()
         # TODO ADD image list
         self.image_generation_time = datetime.datetime.now() 
-        self.image_prompt = ""
-        self.image_font = ""
-
         self.create_time = datetime.datetime.now()
 
         # Anything with underscore will be ignored during serialization
@@ -215,17 +218,15 @@ class media:
             "critic_review": self.critic_review,
             "popularity_score": self.popularity_score,
             "genre": self.genre,
+            "prompts_temperature": self.prompts_temperature,
             "movie_prompt": self.movie_prompt,
-            # REMOVE THIS AFTER TESTING
-            #"movie_prompt_temperature": self.movie_prompt_temperature,
+            "image_prompt": self.image_prompt,
             "critic_prompt": self.critic_prompt,
             "object_prompt_list": self.object_prompt_list,
             "aoai_text": self.aoai_text.clean_json(),
             "aoai_image": self.aoai_image.clean_json(),
             "aoai_vision": self.aoai_vision.clean_json(),
             "image_generation_time": self.image_generation_time,
-            "image_prompt": self.image_prompt,
-            "image_font": self.image_font,
             "create_time": self.create_time
         }
 
@@ -292,14 +293,14 @@ class media:
         
         # Send the prompt to the API
         try:
-            self.movie_prompt["prompt_temperature"] = round(random.uniform(0.6,1.1),2) # Generate a random movie prompt temperature for funsies
+            #self.movie_prompt["prompt_temperature"] = round(random.uniform(0.6,1.1),2) # Generate a random movie prompt temperature for funsies
             response = text_model.client.chat.completions.create(
                 model=text_model.deployment_name, 
                 messages=[
                     { "role": "system", "content": self.movie_prompt["movie_system"]},
                     {"role": "user", "content":self.movie_prompt["movie"]}
                 ],
-                max_tokens=600, temperature=self.movie_prompt["prompt_temperature"])
+                max_tokens=600, temperature=self.prompts_temperature)
         except Exception as e:
             self._process.outputMessage(f"Error generating object : {e}", "error")
             if self._verbose: traceback.print_exc()
@@ -329,7 +330,7 @@ class media:
                 self._process.outputMessage(f"Error generating object, missing important details (title, tagline or description) in completion.","error")
                 return False
         except:
-            self._process.outputMessage(f"Error parsing object completion: {completion}","error")
+            self._process.outputMessage(f"Error parsing object completion","error")
             return False
 
 # Class for the image object
@@ -339,6 +340,7 @@ class image:
         self.poster_prompt = {}
         self.generated_image = 0
         self.completed_poster = 0
+
     # Generate the prompt for the image based upon the media object info
     def generateImagePrompt(self):
         prompt_file_path = self.media_object._prompt_file_path
@@ -376,38 +378,51 @@ class image:
 
         with open(prompt_file_path) as prompt_file:
             prompt_json=json.load(prompt_file)
-        # REMOVE THIS AFTER TESTING
-        #prompt_json=json.load(prompt_file)
-        #prompt_file.close()
-        prompt_image_json=random.choice(prompt_json["prompts_image"])
+
+        # Get system prompt for generating image prompt completion    
+        self.media_object.image_prompt["image_prompt_system"] = random.choice(prompt_json["image_prompt_system"])
+
+        prompt_image_json=random.choice(prompt_json["image_prompt"])
         #remove objects from media_object that are not needed for the prompt
-        object_keys_keep = ["title", "tagline", "mpaa_rating", "description"]
+        object_prompt_list=self.media_object.object_prompt_list
+        #object_keys_keep = ["title", "tagline", "mpaa_rating", "description"]
+        object_keys_keep = ["title", "tagline", "description"]
         pruned_media_object = {k: v for k, v in self.media_object.__dict__.items() if k in object_keys_keep}
-        pruned_media_object=json.dumps(pruned_media_object)
-        full_prompt = prompt_image_json + pruned_media_object + ",{'font_names':" + json.dumps(font_names)
-        if verbose: process.outputMessage(f"Prompt\n {full_prompt}","verbose")
+        #pruned_media_object=json.dumps(pruned_media_object)
         
-        # REMOVE THIS AFTER TESTING
-        # # Create the AzureOpenAI client for image prompt
-        # client = AzureOpenAI(
-        #     api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
-        #     api_version=os.getenv("AZURE_OPENAI_COMPLETION_API_VERSION"),
-        #     azure_endpoint = os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT")
-        # )
-        # deployment_name=os.getenv("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
+        #print(pruned_media_object)
+        #print(object_prompt_list)
+        #print(f"Image prompt is: {prompt_image_json}")
+        
+        # Take a string and anywhere there is a {} replace it with the value from object_prompt_list or media_object, whatever has it
+        # TODO we do this logic multiple times so likely a better way to do this
+        start_index = prompt_image_json.find("{")
+        while start_index != -1:
+            end_index = prompt_image_json.find("}")
+            key = prompt_image_json[start_index+1:end_index]
+            key_value = ""
+            try:
+                key_value = object_prompt_list[key][0] if key in object_prompt_list else pruned_media_object[key]
+            except:
+                key_value = "NO VALUE"
+            prompt_image_json = prompt_image_json.replace("{"+key+"}", key_value,1)
+            start_index = prompt_image_json.find("{")
+        #full_prompt = prompt_image_json + pruned_media_object + ",{'font_names':" + json.dumps(font_names)
+        #full_prompt = prompt_image_json + "\nFonts:" + json.dumps(font_names)
+        self.media_object.image_prompt["image_prompt"] = prompt_image_json + "\nFonts:" + json.dumps(font_names)
+
+        if verbose: process.outputMessage(f"Prompt\n {self.media_object.image_prompt}","verbose")
 
         text_model = aoaiText()
         try:
-            # TODO implement a system message + prompt message call
-            # response = text_model.client.chat.completions.create(
-            #     model=text_model.deployment_name, 
-            #     messages=[
-            #         { "role": "system", "content": self.movie_prompt["movie_system"]},
-            #         {"role": "user", "content":self.movie_prompt["movie"]}
-            #     ],
-            #     max_tokens=600, temperature=self.movie_prompt["prompt_temperature"])
 
-            response = text_model.client.chat.completions.create(model=text_model.deployment_name, messages=[{"role": "user", "content":full_prompt}], max_tokens=500, temperature=0.7)
+            response = text_model.client.chat.completions.create(
+                model=text_model.deployment_name, 
+                messages=[
+                    { "role": "system", "content": self.media_object.image_prompt["image_prompt_system"]},
+                    {"role": "user", "content":self.media_object.image_prompt["image_prompt"]}
+                ],
+                max_tokens=500, temperature=self.media_object.prompts_temperature)
             
         except Exception as e:
             process.outputMessage(f"Error generating image prompt: {e}","error")
@@ -415,10 +430,13 @@ class image:
             return False
         
         completion=response.choices[0].message.content
-
         # Find the start and end index of the json object
         try:
-            self.poster_prompt = json.loads(process.extractText(completion, "{", "}"))
+            #self.poster_prompt = json.loads(process.extractText(completion, "{", "}"))
+            #self.media_object.image_prompt["image_prompt_completion"] = json.loads(process.extractText(completion, "{", "}"))
+            completion = json.loads(process.extractText(completion, "{", "}"))
+            self.media_object.image_prompt["image_prompt_completion"] = completion["image_prompt"]
+            self.media_object.image_prompt["font"] = completion["font"]
             return True
         except:
             process.outputMessage(f"Error parsing image prompt completion: {completion}","error")
@@ -430,12 +448,6 @@ class image:
         verbose = self.media_object._verbose
         
         image_model = aoaiImage()
-        # REMOVE THIS AFTER TESTING
-        # client = AzureOpenAI(
-        #     api_version=os.getenv("AZURE_OPENAI_DALLE3_API_VERSION"),  
-        #     api_key=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT_KEY"),
-        #     azure_endpoint=os.getenv("AZURE_OPENAI_DALLE3_ENDPOINT")
-        # )
 
         # Attempt to generate the image up to 5 times
         retries=5
@@ -443,14 +455,13 @@ class image:
             try:
                 result = image_model.client.images.generate(
                     model=image_model.deployment_name,
-                    prompt=self.poster_prompt["image_prompt"],
+                    prompt=self.media_object.image_prompt["image_prompt_completion"],
                     n=1,
                     size="1024x1792"
                 )
                 break
             except Exception as e:
-                process.outputMessage(f"Attempt {_+1} of {retries} failed to generate image for '{self.media_object.title}'.","warning")
-                if verbose: print(e)
+                process.outputMessage(f"Attempt {_+1} of {retries} failed to generate image for '{self.media_object.title}'\n{e}.","warning")
                 continue
         else:
             process.outputMessage(f"Error generating image for '{self.media_object.title}' after {retries} attempts","error")
@@ -474,7 +485,7 @@ class image:
         font_files = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
 
         # The name of the font you're looking for
-        font_name_to_find = self.poster_prompt["font"]
+        font_name_to_find = self.media_object.image_prompt["font"]
         
         # Start with arial as the default font
         font_path="arial.ttf"
@@ -500,54 +511,29 @@ class image:
         with open(prompt_file_path) as json_file:
             prompt_json=json.load(json_file)
         
-        prompt=prompt_json["vision"][0]
+        self.media_object.image_prompt["vision_sytem"] = prompt_json["vision_system"]
 
         # Making this less dynamic to keep myself sane
-
+        prompt=prompt_json["vision"][0]
         prompt = prompt.replace("{title}", self.media_object.title)
-        prompt = prompt.replace("{font}", self.media_object.image_font if self.media_object.image_font != "" else self.poster_prompt["font"])
-
-        # REMOVE AFTER TESTING
-        # start_index = prompt.find("{")
-        # while start_index != -1:
-        #     end_index = prompt.find("}")
-        #     key = prompt[start_index+1:end_index]
-        #     key_value = ""
-        #     try:
-        #         key_value = self.media_object[key]
-        #     except:
-        #         key_value = self.poster_prompt[key]
-        #          # Value for template replacement should exist in either media_object or completion
-        #     prompt = prompt.replace("{"+key+"}", key_value,1)
-        #     start_index = prompt.find("{")
+        prompt = prompt.replace("{font}", self.media_object.image_prompt["font"] if self.media_object.image_prompt["font"] != "" else font_path.replace(".ttf", ""))
+        self.media_object.image_prompt["vision"] = prompt
 
         mime_type = "image/png"
         base64_encoded_data = base64.b64encode(self.generated_image.read()).decode('utf-8')
 
         vision_model = aoaiVision()
 
-        # api_base = os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
-        # api_key=os.getenv("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
-        # deployment_name = os.getenv("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
-        # api_version = os.getenv("AZURE_OPENAI_GPT4_VISION_API_VERSION")
-
-        # REMOVE AFTER TESTING
-        # client = AzureOpenAI(
-        #     api_key=api_key,  
-        #     api_version=api_version,
-        #     base_url=f"{api_base}openai/deployments/{deployment_name}/extensions",
-        # )
-
         try:
 
             response = vision_model.client.chat.completions.create(
                 model=vision_model.deployment_name,
                 messages=[
-                    { "role": "system", "content": prompt_json["vision_system"] },
+                    { "role": "system", "content": self.media_object.image_prompt["vision_sytem"] },
                     { "role": "user", "content": [  
                         { 
                             "type": "text", 
-                            "text": prompt 
+                            "text": self.media_object.image_prompt["vision"] 
                         },
                         { 
                             "type": "image_url",
@@ -743,8 +729,8 @@ def main():
             else:
                 process.outputMessage(f"Image created for '{media_object.title}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
                 media_object.image_generation_time = str(datetime.datetime.now())
-                media_object.image_prompt = image_object.poster_prompt["image_prompt"].replace("'", "\"")
-                media_object.image_font = image_object.poster_prompt["font"] if "font" in image_object.poster_prompt else "arial"
+                #media_object.image_prompt = image_object.poster_prompt["image_prompt"].replace("'", "\"")
+                #media_object.image_font = image_object.poster_prompt["font"] if "font" in image_object.poster_prompt else "arial"
                 media_object.create_time=str(datetime.datetime.now())
                 
                 # Save the media object and image to the outputs directory
