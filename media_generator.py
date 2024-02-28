@@ -263,14 +263,6 @@ class media:
             with open(prompt_file_path) as prompt_file:
                 prompts_json=json.load(prompt_file)
 
-            # REMOVE THIS AFTER TESTING
-            #prompt_movie_system=self.parseTemplate(random.choice(prompts_json["movie_system"]))
-            #prompt_movie=self.parseTemplate(random.choice(prompts_json["movie"]))
-            #prompt_start=self.parseTemplate(random.choice(prompt_json["prompts_start"]))
-            #prompt_cast=self.parseTemplate(random.choice(prompt_json["prompts_cast"]))
-            #prompt_synopsis=self.parseTemplate(random.choice(prompt_json["prompts_synopsis"]))
-            #prompt_end=self.parseTemplate(random.choice(prompt_json["prompts_end"]))
-            #self.object_prompt=f"{prompt_start} {prompt_cast} {prompt_synopsis} {prompt_end}"
             self.movie_prompt["movie_system"] = self.parseTemplate(random.choice(prompts_json["movie_system"]))
             self.movie_prompt["movie"]=self.parseTemplate(random.choice(prompts_json["movie"]))
             return True
@@ -388,7 +380,6 @@ class image:
         #prompt_json=json.load(prompt_file)
         #prompt_file.close()
         prompt_image_json=random.choice(prompt_json["prompts_image"])
-
         #remove objects from media_object that are not needed for the prompt
         object_keys_keep = ["title", "tagline", "mpaa_rating", "description"]
         pruned_media_object = {k: v for k, v in self.media_object.__dict__.items() if k in object_keys_keep}
@@ -451,7 +442,7 @@ class image:
         for _ in range(retries):
             try:
                 result = image_model.client.images.generate(
-                    model=os.getenv("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME"), # the name of your DALL-E 3 deployment
+                    model=image_model.deployment_name,
                     prompt=self.poster_prompt["image_prompt"],
                     n=1,
                     size="1024x1792"
@@ -654,18 +645,18 @@ def main():
     # Load the environment variables from the .env file
     load_dotenv()
 
-    process.envCheck("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY")
-    process.envCheck("AZURE_OPENAI_COMPLETION_API_VERSION")
-    process.envCheck("AZURE_OPENAI_COMPLETION_ENDPOINT")
-    process.envCheck("AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME")
-    process.envCheck("AZURE_OPENAI_DALLE3_ENDPOINT_KEY")
-    process.envCheck("AZURE_OPENAI_DALLE3_API_VERSION")
-    process.envCheck("AZURE_OPENAI_DALLE3_ENDPOINT")
-    process.envCheck("AZURE_OPENAI_DALLE3_DEPLOYMENT_NAME")
-    process.envCheck("AZURE_OPENAI_GPT4_VISION_ENDPOINT")
-    process.envCheck("AZURE_OPENAI_GPT4_VISION_ENDPOINT_KEY")
-    process.envCheck("AZURE_OPENAI_GPT4_VISION_DEPLOYMENT_NAME")
-    process.envCheck("AZURE_OPENAI_GPT4_VISION_API_VERSION")
+    process.envCheck("AZURE_OPENAI_TEXT_ENDPOINT_KEY")
+    process.envCheck("AZURE_OPENAI_TEXT_API_VERSION")
+    process.envCheck("AZURE_OPENAI_TEXT_ENDPOINT")
+    process.envCheck("AZURE_OPENAI_TEXT_DEPLOYMENT_NAME")
+    process.envCheck("AZURE_OPENAI_IMAGE_ENDPOINT_KEY")
+    process.envCheck("AZURE_OPENAI_IMAGE_API_VERSION")
+    process.envCheck("AZURE_OPENAI_IMAGE_ENDPOINT")
+    process.envCheck("AZURE_OPENAI_IMAGE_DEPLOYMENT_NAME")
+    process.envCheck("AZURE_OPENAI_VISION_ENDPOINT")
+    process.envCheck("AZURE_OPENAI_VISION_ENDPOINT_KEY")
+    process.envCheck("AZURE_OPENAI_VISION_DEPLOYMENT_NAME")
+    process.envCheck("AZURE_OPENAI_VISION_API_VERSION")
 
     working_dir=os.getcwd()
     templates_base=os.path.join(working_dir, "templates")
@@ -716,7 +707,7 @@ def main():
         if not media_object.generateObjectPrompt():
             continue
         if args.verbose: 
-            process.outputMessage(f"Object prompt:\n {media_object.object_prompt}","verbose")
+            process.outputMessage(f"Object prompt:\n {media_object.movie_prompt}","verbose")
             process.outputMessage(f"Template list:\n {json.dumps(media_object.object_prompt_list, indent=4)}","verbose")
         process.outputMessage(f"Finished building prompt, build time: {str(datetime.datetime.now() - object_start_time)}","")
 

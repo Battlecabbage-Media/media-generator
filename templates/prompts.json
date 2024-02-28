@@ -3,7 +3,13 @@
         "You are a talented movie writer. You will be provided a list of information to create a movie. You will create a title and tagline for the movie. You will create a description teaser for the movie. You will provide a MPAA rating and the reason for the MPAA rating given. The title, tagline and description of the movie will be consistent with the rating of the movie. You can be creative with your writing. The output result will be in json format with title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, description as the description property."
     ],
     "movie": [
-        "The movie has a genre of {genres}."
+        "Genre: '{genres}'\nPlot: '{plots}'\n, Character Origins: '{origins}\nMovie Era: '{eras}'\n MPAA Rating: '{mpaa_ratings}'\nRoles: '{roles}', '{roles}'\nActors: '{actors}', '{actors}', '{actors}'\nDirector: {directors}"
+    ],
+    "image_prompt_system":[
+        "You are a talented graphic designer who will help design a movie poster. You will be provided a list of information describing the movie. You will also be provided a list of fonts to choose one from that will be used on the poster. The design you provide will be used to send to an image generator as a prompt that will create the poster. Output results as json with the prompt as image_prompt and the font as font."
+    ],
+    "image_prompt":[
+        "Movie Title: '{title}'\n Movie tagline: '{tagline}'\n, Movie Description: '{description}'\n, MPAA Rating: '{mpaa_rating}'\n Movie Era: '{eras}'\n Movie Genre: '{genres}'\nfonts: '{font_names}'\n"
     ],
     "critic_system":[
         "You are a well respected film critic. You will be given a movie title, tagline, description and MPAA rating. You will be provided a tone to use for your review as critic_tone. You will provide a critic score between 1 and 10 as the property critic_score. You will provide a critic review as the property critic_review. Output this information in JSON form."
@@ -28,9 +34,6 @@
     ],
     "prompts_end": [
         "make the character names of {origins} origin. Provide what the movie contains which is the reason for the rating. The title, tagline and description should be consistent with the rating of the movie. Provide a critic score between 1 and 10 as critic_score. Provide a critic review as critic_review. Output result as json, title as the title property, tagline as the tagline property, rating as mpaa_rating, rating reason as rating_content, assign it a single word genre as genre, description as the description property."
-    ],
-    "image_prompt_system" :[
-        ""
     ],
     "prompts_image":[
         "Use the provided movie title, tagline, MPAA rating and description to generate an image prompt for an image as image_prompt. Prompt does not contain anything graphic, explicit, text or weapons. Keep the image_prompt as one string. Choose a font from the font_names that will best match the image style as font. Determine the best style for the image to be applied. Output results as json."
