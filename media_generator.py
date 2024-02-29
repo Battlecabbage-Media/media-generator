@@ -192,19 +192,17 @@ class media:
         self.description = ""
         self.popularity_score = round(random.uniform(1, 10), 1)
         self.genre = ""
-        self.prompts_temperature = round(random.uniform(0.6,1.1),2)
+        self.reviews = []
         self.movie_prompt = {}
         self.image_prompt = {}
-        self.critic_prompt = {}
         self.vision_prompt = {}
-        self.reviews = []
         self.object_prompt_list = {}
         # Setting some Models stuff
         self.aoai_text = aoaiText()
         self.aoai_image = aoaiImage()
         self.aoai_vision = aoaiVision()
-        # TODO ADD image list
-        self.image_generation_time = datetime.datetime.now() 
+        self.image_generation_time = datetime.datetime.now()
+        self.prompts_temperature = round(random.uniform(0.6,1.1),2)
         self.create_time = datetime.datetime.now()
 
         # Anything with underscore will be ignored during serialization
@@ -224,16 +222,15 @@ class media:
             "popularity_score": self.popularity_score,
             "genre": self.genre,
             "reviews": self.reviews,
-            "prompts_temperature": self.prompts_temperature,
             "movie_prompt": self.movie_prompt,
             "image_prompt": self.image_prompt,
-            "critic_prompt": self.critic_prompt,
             "vision_prompt": self.vision_prompt,
             "prompt_value_list": self.object_prompt_list,
             "aoai_text": self.aoai_text.clean_json(),
             "aoai_image": self.aoai_image.clean_json(),
             "aoai_vision": self.aoai_vision.clean_json(),
             "image_generation_time": self.image_generation_time,
+            "prompts_temperature": self.prompts_temperature,
             "create_time": self.create_time
         }
 
@@ -326,45 +323,59 @@ class media:
             else:
                 self._process.outputMessage(f"Error generating object, missing important details (title, tagline or description) in completion.","error")
                 return False
-        except:
+        except Exception as e:
             self._process.outputMessage(f"Error parsing object completion","error")
+            print(first_completion)
+            print(e)
             return False
-        
-    def generateReview(self):
-        
-        prompt_file_path = self._prompt_file_path
+
+
+# Class for a critic review
+class criticReview:
+    def __init__(self, media_object: media, verbose=False):
+        self.media_object = media_object
+        self.system_prompt = ""
+        self.prompt = ""
+        self.review = ""
+        self.score = 0
+        self.tone = ""
+
+    # Generate the prompt for the critic review based upon the media object info
+    def buildCriticPrompt(self):
+        prompt_file_path = self.media_object._prompt_file_path
+        process = self.media_object._process
+        verbose = self.media_object._verbose
         try:
             with open(prompt_file_path) as prompt_file:
-                prompts_json=json.load(prompt_file)
+                prompt_json=json.load(prompt_file)
         except IOError as e:
-            self._process.outputMessage(f"Error opening prompt file. {prompt_file_path}. Check that it exists!", "error")
+            process.outputMessage(f"Error opening prompt file. {prompt_file_path}. Check that it exists!", "error")
             exit()
         except Exception as e:
-            self._process.outputMessage(f"An issue occurred building the object prompt: {e}", "error")
+            process.outputMessage(f"An issue occurred building the object prompt: {e}", "error")
             return False, "An error occurred."
-        
-        self.critic_prompt["critic_system"] = random.choice(prompts_json["critic_system"])
-        critic_prompt_json=random.choice(prompts_json["critic"])
+
+        self.system_prompt = random.choice(prompt_json["critic_system"])
+        critic_prompt_json=random.choice(prompt_json["critic"])
         start_index = critic_prompt_json.find("{")
         while start_index != -1:
             end_index = critic_prompt_json.find("}")
             key = critic_prompt_json[start_index+1:end_index]
             key_value = ""
             try:
-                # if key == "tones":
-                #     with open(os.path.join(self._templates_base, "tones.json")) as json_file:
-                #         tones_json=json.load(json_file)
-                #         key_value = random.choice(tones_json["tones"])
-                #         critic_tone = key_value
-                # else:
-                    key_value = self.object_prompt_list[key][0] if key in self.object_prompt_list else self.__dict__[key]
+                key_value = self.media_object.object_prompt_list[key][0] if key in self.media_object.object_prompt_list else self.media_object.__dict__[key]
             except:
                 key_value = "NO VALUE"
             critic_prompt_json = critic_prompt_json.replace("{"+key+"}", key_value,1)
             start_index = critic_prompt_json.find("{")
         
-        self.critic_prompt["critic"]=critic_prompt_json
-   
+        self.prompt=critic_prompt_json
+        return True
+
+    # Generate the critic review using the prompt
+    def generateCriticReview(self):
+        process = self.media_object._process
+        verbose = self.media_object._verbose
         text_model = aoaiText()
       
         # Send the prompt to the API
@@ -372,33 +383,44 @@ class media:
             response = text_model.client.chat.completions.create(
                 model=text_model.deployment_name, 
                 messages=[
-                    { "role": "system", "content":  self.critic_prompt["critic_system"]},
-                    {"role": "user", "content":self.critic_prompt["critic"]}
+                    { "role": "system", "content":  self.system_prompt},
+                    {"role": "user", "content":self.prompt}
                 ],
-                max_tokens=600, temperature=self.prompts_temperature)
+                max_tokens=600, temperature=self.media_object.prompts_temperature)
         except Exception as e:
-            self._process.outputMessage(f"Error generating critic review : {e}", "error")
-            if self._verbose: traceback.print_exc()
+            process.outputMessage(f"Error generating critic review : {e}", "error")
+            if verbose: traceback.print_exc()
             return False
-
-        # Parse the response and return the formatted json object
+        
+        # Parse the response
         first_completion=response.choices[0].message.content
 
         # Find the start and end index of the json object
         try:
-            completion = json.loads(self._process.extractText(first_completion, "{", "}"))
 
-            # Append the critic review to the reviews list
-            review = {}
+            completion = json.loads(process.extractText(first_completion, "{", "}"))
+
             if completion["critic_score"] and completion["critic_review"]:
-                review["critic_review"] = completion["critic_review"]
-                review["critic_score"] = completion["critic_score"]
-                review["critic_tone"] = completion["critic_tone"]
-                self.reviews.append(review)
-            return True
+                self.review = completion["critic_review"]
+                self.score = completion["critic_score"]
+                self.tone = completion["critic_tone"]
+                return True
+            else:
+                process.outputMessage(f"Error generating critic review, missing important details (score or review) in completion.","error")
+                return False
+            
         except Exception as e:
-            self._process.outputMessage(f"Error parsing object completion\nCompletion:{first_completion}\n{e}","error")
+            process.outputMessage(f"Error parsing object completion\nCompletion:{first_completion}\n{e}","error")
             return False
+        
+    def to_json(self):
+        return {
+            "system_prompt": self.system_prompt,
+            "prompt": self.prompt,
+            "review": self.review,
+            "score": self.score,
+            "tone": self.tone
+        }
 
 # Class for the image object
 class image:
@@ -775,12 +797,19 @@ def main():
 
         #Creating a critic review for the movie
         process.outputMessage(f"Creating critic review for '{media_object.title}'","")
-        if not media_object.generateReview():
+        review = criticReview(media_object, args.verbose)
+        if not review.buildCriticPrompt():
             process.incrementGenerateCount()
             continue
-        else:
-            if args.verbose:
-                process.outputMessage(f"Critic review:\n {media_object.reviews}","verbose")
+        if args.verbose:
+            process.outputMessage(f"Critic prompt:\n {review.critic_prompt}","verbose")
+        if not review.generateCriticReview():
+            process.incrementGenerateCount()
+            continue
+        if args.verbose:        
+            process.outputMessage(f"Critic review:\n {media_object.reviews}","verbose")
+        media_object.reviews.append(review.to_json())
+        process.outputMessage(f"Critic review created for '{media_object.title}', critic review generate time: {str(datetime.datetime.now() - object_start_time)}","")
     
 
         ### Image creation ###
