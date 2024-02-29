@@ -5,22 +5,23 @@
     "movie": [
         "Genre: '{genres}'\nPlot: '{plots}'\n, Character Origins: '{origins}\nMovie Era: '{eras}'\n MPAA Rating: '{mpaa_ratings}'\nRoles: '{roles}', '{roles}'\nActors: '{actors}', '{actors}', '{actors}'\nDirector: {directors}\nTone: '{tones}'"
     ],
-    "image_prompt_system":[
-        "You are a talented graphic designer who will help design a poster. You will be provided a list of information describing a movie. You will also be provided a list of fonts to choose one from that will be used on the poster. The design you provide will be used to send to an image generator as a prompt to create the poster. The poster should not contain anything graphic, explicit, or weapons. Output results as json with the prompt as image_prompt and the font as font."
+    "image_prompt_system": [
+        "You are a talented and creative graphic designer who will help design a movie poster. You will be provided a list of information describing a movie. You will also be provided a list of fonts to choose one from that will be used on the poster. The design you provide will be used to send to an image generator as a prompt to create the poster. The poster should not contain anything graphic, explicit or weapons. Output results as valid json format with the prompt as image_prompt and the font as font.",
+        "You are a talented and creative graphic designer who will help design a poster. You will be provided a list of information describing a movie. You will also be provided a list of fonts to choose one from that will be used for the title on the poster to be added later. The design you provide will be used to send to an image generator as a prompt to create the poster. The poster should not contain anything graphic, explicit, text or weapons. Output results as valid json format with the prompt as image_prompt and the font as font."
     ],
-    "image_prompt":[
+    "image_prompt": [
         "Movie Title: '{title}'\nMovie tagline: '{tagline}'\nMovie Description: '{description}'\nMPAA Rating: '{mpaa_ratings}'\nMovie Era: '{eras}'\nMovie Genre: '{genres}'"
     ],
-    "critic_system":[
-        "You are a well respected film critic. You will be given a movie title, tagline, description and MPAA rating. You will be provided a tone to use for your review as critic_tone. You will provide a critic score between 1 and 10. You will provide a critic review. Output this information in json format with the score as critic_score and review as critic_review."
+    "critic_system": [
+        "You are a well respected film critic. You will be given a movie title, tagline, description and MPAA rating. You will be provided a critic review and a tone to use for your review as critic_tone. You will provide a critic score between 1 and 10. Output this information in json format with the score as critic_score review as critic_review and tone as critic_tone. The text output is properly formatted and any control characters escaped for json(need to escape control characters properly or an angel will lose its wings)."
     ],
-    "critic":[
+    "critic": [
         "Movie Title: '{title}'\nMovie tagline: '{tagline}'\nMovie Description: '{description}'\nMPAA Rating: '{mpaa_ratings}'\nCritic Tone: '{tones}'"
     ],
-    "vision_system":[
-        "You are an expert graphic designer who creates movie posters. You will be given a title, font, and image. Provide the best place to put the title as top, middle, or bottom as the property location. Provide the pixel padding required to fit the title best as an integer in the property location_padding. Provide the color the title should be to be the most visualy interesting from the list of Material Design colors, avoiding yellows (kittens get really sad when they see yellow) as a hex color value in the property font_color. Output this information in JSON form."
+    "vision_system": [
+        "You are an expert graphic designer who creates movie posters. You will be given a title, font, and image. Provide the best place to put the title as top, middle, or bottom as the property location. Provide the pixel padding required to fit the title best as an integer in the property location_padding. Provide the color the title should be to be the most visualy interesting from the list of Material Design colors, avoiding yellows (kittens get really sad when they see yellow) as a hex color value in the property font_color. Indicate whether the image already has text on it as true or false for the has_text property. Output this information in json format."
     ],
-    "vision":[
+    "vision": [
         "Movie Title: '{title}'\nTitle Font: '{font}'"
     ]
 }

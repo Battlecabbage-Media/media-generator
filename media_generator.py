@@ -196,6 +196,7 @@ class media:
         self.movie_prompt = {}
         self.image_prompt = {}
         self.critic_prompt = {}
+        self.vision_prompt = {}
         self.reviews = []
         self.object_prompt_list = {}
         # Setting some Models stuff
@@ -227,6 +228,7 @@ class media:
             "movie_prompt": self.movie_prompt,
             "image_prompt": self.image_prompt,
             "critic_prompt": self.critic_prompt,
+            "vision_prompt": self.vision_prompt,
             "prompt_value_list": self.object_prompt_list,
             "aoai_text": self.aoai_text.clean_json(),
             "aoai_image": self.aoai_image.clean_json(),
@@ -349,7 +351,13 @@ class media:
             key = critic_prompt_json[start_index+1:end_index]
             key_value = ""
             try:
-                key_value = self.object_prompt_list[key][0] if key in self.object_prompt_list else self.__dict__[key]
+                # if key == "tones":
+                #     with open(os.path.join(self._templates_base, "tones.json")) as json_file:
+                #         tones_json=json.load(json_file)
+                #         key_value = random.choice(tones_json["tones"])
+                #         critic_tone = key_value
+                # else:
+                    key_value = self.object_prompt_list[key][0] if key in self.object_prompt_list else self.__dict__[key]
             except:
                 key_value = "NO VALUE"
             critic_prompt_json = critic_prompt_json.replace("{"+key+"}", key_value,1)
@@ -385,6 +393,7 @@ class media:
             if completion["critic_score"] and completion["critic_review"]:
                 review["critic_review"] = completion["critic_review"]
                 review["critic_score"] = completion["critic_score"]
+                review["critic_tone"] = completion["critic_tone"]
                 self.reviews.append(review)
             return True
         except Exception as e:
@@ -560,14 +569,13 @@ class image:
         with open(prompt_file_path) as json_file:
             prompt_json=json.load(json_file)
         
-        self.media_object.image_prompt["vision_sytem"] = prompt_json["vision_system"]
-
         # Making this less dynamic to keep myself sane
-        prompt=prompt_json["vision"][0]
+        prompt = random.choice(prompt_json["vision"])
         prompt = prompt.replace("{title}", self.media_object.title)
         prompt = prompt.replace("{font}", self.media_object.image_prompt["font"] if self.media_object.image_prompt["font"] != "" else font_path.replace(".ttf", ""))
-        self.media_object.image_prompt["vision"] = prompt
-
+        self.media_object.vision_prompt["vision"] = prompt
+        self.media_object.vision_prompt["vision_system"] = random.choice(prompt_json["vision_system"])
+  
         mime_type = "image/png"
         base64_encoded_data = base64.b64encode(self.generated_image.read()).decode('utf-8')
 
@@ -578,11 +586,11 @@ class image:
             response = vision_model.client.chat.completions.create(
                 model=vision_model.deployment_name,
                 messages=[
-                    { "role": "system", "content": self.media_object.image_prompt["vision_sytem"] },
+                    { "role": "system", "content": self.media_object.vision_prompt['vision_system'] },
                     { "role": "user", "content": [  
                         { 
                             "type": "text", 
-                            "text": self.media_object.image_prompt["vision"] 
+                            "text": self.media_object.vision_prompt['vision']
                         },
                         { 
                             "type": "image_url",
@@ -597,7 +605,8 @@ class image:
 
         except Exception as e:
             process.outputMessage(f"Error processing image: {e}","error")
-            if verbose: traceback.print_exc()
+            #if verbose: traceback.print_exc()
+            traceback.print_exc()
             return False
 
         vision_completion = response.choices[0].message.content
@@ -609,68 +618,78 @@ class image:
             process.outputMessage(f"Error parsing vision prompt completion: {vision_completion}","error")
             return False
 
-        text_string = self.media_object.title
-
-        # Randomly choose to uppercase the text
-        uppercase_chance = random.randint(1, 10)
-        if uppercase_chance == 1:
-            text_string = text_string.upper()
-
-        # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
-        delimiter = ":"
-        text_list = text_string.split(delimiter)
-        # If the count of the delimiter in the string is 1 then add the delimtier back to the string
-        if text_string.count(delimiter) == 1:
-            text_list[0] += delimiter
-        max_text = max(text_list, key=len)
+        self.media_object.vision_prompt["location"] = vision_completion["location"]
+        self.media_object.vision_prompt["location_padding"] = vision_completion["location_padding"]
+        self.media_object.vision_prompt["font_color"] = vision_completion["font_color"]
+        self.media_object.vision_prompt["has_text"] = vision_completion["has_text"]
 
         # Open the image file for manipulation
         with Image.open(self.generated_image) as img:
-            
-            img_w, img_h = img.size
-            draw = ImageDraw.Draw(img)
-            fontsize = 1  # starting font size
-            font = ImageFont.truetype(font_path, fontsize)
-            # Find font size to fit the text based upon fraction of the image width and biggest string section
-            scale=.85
-            while font.getlength(max_text) < scale*img_w:
-                # iterate until the text size is just larger than the criteria
-                fontsize += 1
-                font = ImageFont.truetype(font_path, fontsize)
-            
-            # Decrement to be sure it is less than criteria and styled
-            fontsize -= 1
-            font = ImageFont.truetype(font_path, fontsize)
-            
-            # The height of the font is the delta of its ascent and descent
-            ascent, descent = font.getmetrics()
-            font_height = ascent - descent
-            section_top =  vision_completion["location_padding"]
-            section_middle = (img_h / 2) - (font_height * len(text_list) + (20 * len(text_list))) # Center of the image but offset by font, line count and general padding
-            section_bottom = img_h - (img_h / 8)
-            section_bottom = section_bottom - font_height if len(text_list) > 1 else section_bottom # shave off one font height if there are two lines of text
-            y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
-            w = font.getlength(max_text)
-            w_placement=(img_w-w)/2
-            line_count = 1
-            for text_line in text_list:
-                # remove proceeding and trailing spaces
-                text_line = text_line.strip()
-            
-                # Get the starting location for the text based upon the layout
-                y_location = vision_completion["location"] if "location" in vision_completion else "top"
-                if line_count == 1:
-                    y_placement = y_placements[y_location]
-                else:
-                    y_placement = y_placements[y_location] + (font_height * (line_count - 1)) + (font_height * .70) 
-                font_color = vision_completion["font_color"] if "font_color" in vision_completion else "#000000"
-                stroke_color = "#111111" if font_color > "#999999" else "#DDDDDD"
-                # put the text on the image
-                draw.text((w_placement, y_placement), text_line, fill=font_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') 
-                line_count += 1
 
-            self.completed_poster = img
-            return True
+            draw = ImageDraw.Draw(img)
+            
+            # Check if the poster has text and if it doesnt, title it.
+            if vision_completion["has_text"] == False:
+
+                img_w, img_h = img.size
+                fontsize = 1  # starting font size
+                font = ImageFont.truetype(font_path, fontsize)
+                # Find font size to fit the text based upon fraction of the image width and biggest string section
+                scale=.85
+
+                text_string = self.media_object.title
+
+                # Randomly choose to uppercase the text
+                uppercase_chance = random.randint(1, 10)
+                if uppercase_chance == 1:
+                    text_string = text_string.upper()
+
+                # split the string on a delimeter into a list and find the biggest portion, keep the delimiter
+                delimiter = ":"
+                text_list = text_string.split(delimiter)
+                # If the count of the delimiter in the string is 1 then add the delimtier back to the string
+                if text_string.count(delimiter) == 1:
+                    text_list[0] += delimiter
+                max_text = max(text_list, key=len)
+
+                while font.getlength(max_text) < scale*img_w:
+                    # iterate until the text size is just larger than the criteria
+                    fontsize += 1
+                    font = ImageFont.truetype(font_path, fontsize)
+                
+                # Decrement to be sure it is less than criteria and styled
+                fontsize -= 1
+                font = ImageFont.truetype(font_path, fontsize)
+                
+                # The height of the font is the delta of its ascent and descent
+                ascent, descent = font.getmetrics()
+                font_height = ascent - descent
+                section_top =  vision_completion["location_padding"]
+                section_middle = (img_h / 2) - (font_height * len(text_list) + (20 * len(text_list))) # Center of the image but offset by font, line count and general padding
+                section_bottom = img_h - (img_h / 8)
+                section_bottom = section_bottom - font_height if len(text_list) > 1 else section_bottom # shave off one font height if there are two lines of text
+                y_placements = {"top": section_top, "middle": section_middle, "bottom": section_bottom}
+                w = font.getlength(max_text)
+                w_placement=(img_w-w)/2
+                line_count = 1
+                for text_line in text_list:
+                    # remove proceeding and trailing spaces
+                    text_line = text_line.strip()
+                
+                    # Get the starting location for the text based upon the layout
+                    y_location = vision_completion["location"] if "location" in vision_completion else "top"
+                    if line_count == 1:
+                        y_placement = y_placements[y_location]
+                    else:
+                        y_placement = y_placements[y_location] + (font_height * (line_count - 1)) + (font_height * .70) 
+                    font_color = vision_completion["font_color"] if "font_color" in vision_completion else "#000000"
+                    stroke_color = "#111111" if font_color > "#999999" else "#DDDDDD"
+                    # put the text on the image
+                    draw.text((w_placement, y_placement), text_line, fill=font_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') 
+                    line_count += 1
+
+        self.completed_poster = img
+        return True
 
 # Main function to run the generator
 def main():

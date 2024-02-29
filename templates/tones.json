@@ -1,5 +1,6 @@
 {  
-  "tones": [  
+  "tones": [
+    "Humorous",  
     "Formal",  
     "Playful",  
     "Serious",  
@@ -9,6 +10,7 @@
     "Passionate",
     "Humorous",
     "Sarcastic",
-    "Cynical"
+    "Cynical",
+    "Pedantic"
   ]  
 }  
