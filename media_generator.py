@@ -21,13 +21,17 @@ import traceback
 # NOTES
 # This thing has gotten really hacky and needs to be cleaned up. I'm not happy with the way the classes are being used and the way the functions are being called.
 # It started out very procedural because thats how I write, cabattag came in and added classes and I've been trying to make it work with the new classes and design
-# but I made it worse.
+# but I made it worse. There is a lot that could be improved, lots of repeated logic/methods and just general messiness because it being such hybrid of procedural
+# and OOP
 
 # Create a class for common values and functions across the script
 class processHelper:
     
     def __init__(self):
         self.process_id = 0
+        self.generate_count = 1
+        self.generated_count = 0
+        self.success_count = 0
 
     def createProcessId(self):
         self.process_id = hashlib.md5(str(random.random()).encode()).hexdigest()[:16]
@@ -56,6 +60,10 @@ class processHelper:
 
         print(f"{str(datetime.datetime.now())} - {self.process_id} - {color}{message}")
         print("\033[0m", end="") # Reset color
+
+    # increments the generated count to keep loop going, is there a better way to do this?
+    def incrementGenerateCount(self):
+        self.generated_count += 1
 
     # Creates a directory based upon the directory path provided
     def createDirectory(self, directory):
@@ -187,10 +195,8 @@ class media:
         self.prompts_temperature = round(random.uniform(0.6,1.1),2)
         self.movie_prompt = {}
         self.image_prompt = {}
-        # TODO add critic list
         self.critic_prompt = {}
-        self.critic_score = 0.0
-        self.critic_review = "NO CRITIC REVIEW"
+        self.reviews = []
         self.object_prompt_list = {}
         # Setting some Models stuff
         self.aoai_text = aoaiText()
@@ -214,15 +220,14 @@ class media:
             "tagline": self.tagline,
             "mpaa_rating": self.mpaa_rating,
             "description": self.description,
-            "critic_score": self.critic_score,
-            "critic_review": self.critic_review,
             "popularity_score": self.popularity_score,
             "genre": self.genre,
+            "reviews": self.reviews,
             "prompts_temperature": self.prompts_temperature,
             "movie_prompt": self.movie_prompt,
             "image_prompt": self.image_prompt,
             "critic_prompt": self.critic_prompt,
-            "object_prompt_list": self.object_prompt_list,
+            "prompt_value_list": self.object_prompt_list,
             "aoai_text": self.aoai_text.clean_json(),
             "aoai_image": self.aoai_image.clean_json(),
             "aoai_vision": self.aoai_vision.clean_json(),
@@ -282,15 +287,7 @@ class media:
 
         # Create a text model object
         text_model = aoaiText()
-
-        # REMOVE THIS AFTER TESTING
-        # # Create the AzureOpenAI client
-        # client = AzureOpenAI(
-        #     api_key=os.getenv("AZURE_OPENAI_COMPLETION_ENDPOINT_KEY"),  
-        #     api_version=self.azure_openai_text_completion_api_version,
-        #     azure_endpoint = self.azure_openai_text_completion_endpoint
-        # )
-        
+      
         # Send the prompt to the API
         try:
             #self.movie_prompt["prompt_temperature"] = round(random.uniform(0.6,1.1),2) # Generate a random movie prompt temperature for funsies
@@ -320,8 +317,6 @@ class media:
                 self.tagline = completion["tagline"]
                 self.mpaa_rating = completion["mpaa_rating"] if "mpaa_rating" in completion else "NR"
                 self.mpaa_rating_content = completion["rating_content"] if "rating_content" in completion else "NO RATING CONTENT"
-                #self.critic_score = completion["critic_score"] if "critic_score" in completion else "NO CRITIC SCORE"
-                #self.critic_review = completion["critic_review"] if "critic_review" in completion else "NO CRITIC REVIEW"
                 self.genre = self.object_prompt_list["genres"][0] if "genres" in self.object_prompt_list else "NO GENRE"
                 self.description = completion["description"]
                 self.poster_url = "movie_poster_url.jpeg"
@@ -331,6 +326,69 @@ class media:
                 return False
         except:
             self._process.outputMessage(f"Error parsing object completion","error")
+            return False
+        
+    def generateReview(self):
+        
+        prompt_file_path = self._prompt_file_path
+        try:
+            with open(prompt_file_path) as prompt_file:
+                prompts_json=json.load(prompt_file)
+        except IOError as e:
+            self._process.outputMessage(f"Error opening prompt file. {prompt_file_path}. Check that it exists!", "error")
+            exit()
+        except Exception as e:
+            self._process.outputMessage(f"An issue occurred building the object prompt: {e}", "error")
+            return False, "An error occurred."
+        
+        self.critic_prompt["critic_system"] = random.choice(prompts_json["critic_system"])
+        critic_prompt_json=random.choice(prompts_json["critic"])
+        start_index = critic_prompt_json.find("{")
+        while start_index != -1:
+            end_index = critic_prompt_json.find("}")
+            key = critic_prompt_json[start_index+1:end_index]
+            key_value = ""
+            try:
+                key_value = self.object_prompt_list[key][0] if key in self.object_prompt_list else self.__dict__[key]
+            except:
+                key_value = "NO VALUE"
+            critic_prompt_json = critic_prompt_json.replace("{"+key+"}", key_value,1)
+            start_index = critic_prompt_json.find("{")
+        
+        self.critic_prompt["critic"]=critic_prompt_json
+   
+        text_model = aoaiText()
+      
+        # Send the prompt to the API
+        try:
+            response = text_model.client.chat.completions.create(
+                model=text_model.deployment_name, 
+                messages=[
+                    { "role": "system", "content":  self.critic_prompt["critic_system"]},
+                    {"role": "user", "content":self.critic_prompt["critic"]}
+                ],
+                max_tokens=600, temperature=self.prompts_temperature)
+        except Exception as e:
+            self._process.outputMessage(f"Error generating critic review : {e}", "error")
+            if self._verbose: traceback.print_exc()
+            return False
+
+        # Parse the response and return the formatted json object
+        first_completion=response.choices[0].message.content
+
+        # Find the start and end index of the json object
+        try:
+            completion = json.loads(self._process.extractText(first_completion, "{", "}"))
+
+            # Append the critic review to the reviews list
+            review = {}
+            if completion["critic_score"] and completion["critic_review"]:
+                review["critic_review"] = completion["critic_review"]
+                review["critic_score"] = completion["critic_score"]
+                self.reviews.append(review)
+            return True
+        except Exception as e:
+            self._process.outputMessage(f"Error parsing object completion\nCompletion:{first_completion}\n{e}","error")
             return False
 
 # Class for the image object
@@ -385,15 +443,9 @@ class image:
         prompt_image_json=random.choice(prompt_json["image_prompt"])
         #remove objects from media_object that are not needed for the prompt
         object_prompt_list=self.media_object.object_prompt_list
-        #object_keys_keep = ["title", "tagline", "mpaa_rating", "description"]
         object_keys_keep = ["title", "tagline", "description"]
         pruned_media_object = {k: v for k, v in self.media_object.__dict__.items() if k in object_keys_keep}
-        #pruned_media_object=json.dumps(pruned_media_object)
-        
-        #print(pruned_media_object)
-        #print(object_prompt_list)
-        #print(f"Image prompt is: {prompt_image_json}")
-        
+
         # Take a string and anywhere there is a {} replace it with the value from object_prompt_list or media_object, whatever has it
         # TODO we do this logic multiple times so likely a better way to do this
         start_index = prompt_image_json.find("{")
@@ -407,8 +459,7 @@ class image:
                 key_value = "NO VALUE"
             prompt_image_json = prompt_image_json.replace("{"+key+"}", key_value,1)
             start_index = prompt_image_json.find("{")
-        #full_prompt = prompt_image_json + pruned_media_object + ",{'font_names':" + json.dumps(font_names)
-        #full_prompt = prompt_image_json + "\nFonts:" + json.dumps(font_names)
+
         self.media_object.image_prompt["image_prompt"] = prompt_image_json + "\nFonts:" + json.dumps(font_names)
 
         if verbose: process.outputMessage(f"Prompt\n {self.media_object.image_prompt}","verbose")
@@ -432,8 +483,6 @@ class image:
         completion=response.choices[0].message.content
         # Find the start and end index of the json object
         try:
-            #self.poster_prompt = json.loads(process.extractText(completion, "{", "}"))
-            #self.media_object.image_prompt["image_prompt_completion"] = json.loads(process.extractText(completion, "{", "}"))
             completion = json.loads(process.extractText(completion, "{", "}"))
             self.media_object.image_prompt["image_prompt_completion"] = completion["image_prompt"]
             self.media_object.image_prompt["font"] = completion["font"]
@@ -667,30 +716,28 @@ def main():
     process.createProcessId()
     
     # Check if a count command line value is provided and is a digit, if not default to 1
-    generate_count=1
     if(args.count) and args.count.isdigit():
-        generate_count=int(args.count)
+        process.generate_count=int(args.count)
     
-    process.outputMessage(f"Starting creation of {str(generate_count)} media object{'s' if generate_count > 1 else ''}","")
+    process.outputMessage(f"Starting creation of {str(process.generate_count)} media object{'s' if process.generate_count > 1 else ''}","")
 
     # Notify if dry run mode is enabled
     if(args.dryrun): process.outputMessage("Dry run mode enabled, generated media objects will not be saved","verbose")
 
     # Main loop to generate the media objects, including json and images
-    i=0
-    success_count=0
-    while i < generate_count:
+    while process.generated_count < process.generate_count:
         
         object_start_time = datetime.datetime.now()
 
         process.createProcessId()
 
         # Print the current media count being generated
-        process.outputMessage(f"Creating media object: {str(i+1)} of {str(generate_count)}","info")
+        process.outputMessage(f"Creating media object: {str(process.generated_count+1)} of {str(process.generate_count)}","info")
         media_object=media(process, prompt_file_path, templates_base, args.verbose)
         # Build the prompt and print it when verbose mode is enabled and successful
         process.outputMessage(f"Building object prompt","")
         if not media_object.generateObjectPrompt():
+            process.incrementGenerateCount()
             continue
         if args.verbose: 
             process.outputMessage(f"Object prompt:\n {media_object.movie_prompt}","verbose")
@@ -700,11 +747,22 @@ def main():
         # Submit the object prompt for completion and print the object completion when verbose mode is enabled and successful
         process.outputMessage(f"Submitting object prompt for completion","")
         if not media_object.generateObject():
+            process.incrementGenerateCount()
             continue
         else:
             if args.verbose:
                 process.outputMessage(f"Object completion:\n {json.dumps(media_object, indent=4)}","verbose") # Print the completion
             process.outputMessage(f"Finished generating media object '{media_object.title}', object generate time: {str(datetime.datetime.now() - object_start_time)}","")
+
+        #Creating a critic review for the movie
+        process.outputMessage(f"Creating critic review for '{media_object.title}'","")
+        if not media_object.generateReview():
+            process.incrementGenerateCount()
+            continue
+        else:
+            if args.verbose:
+                process.outputMessage(f"Critic review:\n {media_object.reviews}","verbose")
+    
 
         ### Image creation ###
         image_start_time = datetime.datetime.now()
@@ -714,6 +772,7 @@ def main():
         process.outputMessage(f"Generating image prompt for '{media_object.title}'","") 
         
         if not image_object.generateImagePrompt():
+            process.incrementGenerateCount()
             continue
         if args.verbose: 
             process.outputMessage(f"Image prompt:\n{image_object.poster_prompt['image_prompt']}","verbose")
@@ -725,6 +784,7 @@ def main():
             # Add text to image
             if not image_object.processImage():
                 process.outputMessage(f"Error processing image for '{media_object.title}'","error")
+                process.incrementGenerateCount()
                 continue
             else:
                 process.outputMessage(f"Image created for '{media_object.title}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
@@ -739,7 +799,7 @@ def main():
                     image_path = process.saveItem(image_object, "images") # Save Poster Image
                     if image_path: # Image saved successfully
                         process.outputMessage(f"Media created: '{media_object.title}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
-                        success_count+=1
+                        process.success_count += 1
                     else: # Image failed to save, deleting media object
                         process.outputMessage(f"Error saving image for '{media_object.title}', cleaning up media json created","error")
                         if os.path.exists(item_path):
@@ -748,11 +808,13 @@ def main():
                     process.outputMessage(f"Error saving media object '{media_object.title}', image not saved","error")
                     if item_path and os.path.exists(item_path):
                         os.remove(item_path)
+                    process.incrementGenerateCount()
                     continue
-        i+=1
+
+        process.incrementGenerateCount()
     
-    message_level = "success" if success_count == generate_count else "warning"
-    process.outputMessage(f"Finished generating {str(success_count)} media object{'s' if success_count > 1 else ''} of {generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}",message_level)
+    message_level = "success" if process.success_count == process.generate_count else "warning"
+    process.outputMessage(f"Finished generating {str(process.success_count)} media object{'s' if process.success_count > 1 else ''} of {process.generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}",message_level)
 
 if __name__ == "__main__":
     main()
