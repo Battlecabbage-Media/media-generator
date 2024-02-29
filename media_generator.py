@@ -86,28 +86,6 @@ class processHelper:
 
         return file_path
 
-    def saveItem(self, item, type):
-
-        item_path = self.getOutputPath(type, "jpg" if type == "images" else "json")
-        folder_path = os.path.dirname(item_path) 
-        result = self.createDirectory(folder_path)
-        if result == True:
-            try:
-                if type == "images":
-                    #TODO: Move these to the classes instead of having a separate "generic" function
-                    item = item.completed_poster.convert('RGB').resize((724, 1267))
-                    item.save(item_path, 'JPEG', quality=75)
-                elif type == "json":
-                    with open(item_path, "w") as json_file:
-                        json.dump(item.to_json(), json_file)
-                        json_file.write("\n")
-                return item_path
-            except Exception as e:
-                self.outputMessage(f"Error saving {type}.\n{e}","error")
-                return False
-        else:
-            return False
-    
     # Extracts text from a string based upon the start and end values
     def extractText(self, text, start, end):
         start_index = text.find(start)
@@ -211,6 +189,7 @@ class media:
         self._prompt_file_path = prompt_file_path
         self._templates_base = templates_base
         self._verbose = verbose
+        self._object_path = ""
 
     def to_json(self):
         return {
@@ -329,6 +308,31 @@ class media:
             print(e)
             return False
 
+    # Save the media object to a json file
+    def saveMediaObject(self):
+        object_path = self._process.getOutputPath("json", "json")
+        object_dir = os.path.dirname(object_path) 
+        if self._process.createDirectory(object_dir):
+            try:
+                with open(object_path, "w") as json_file:
+                    json.dump(self.to_json(), json_file)
+                    json_file.write("\n")
+                self._object_path = object_path
+                return True
+            except Exception as e:
+                self._process.outputMessage(f"Error saving {type}.\n{e}","error")
+                return False
+        else:
+            return False
+    
+    def objectCleanup(self):
+        # Clean up the object by removing the json file, mainly if the image fails to save to avoid orphaned files.
+        try:
+            os.remove(self._object_path)
+        except:
+            self._process.outputMessage(f"Error removing object file {self._object_path}.","error")
+            return False
+        return True
 
 # Class for a critic review
 class criticReview:
@@ -712,6 +716,21 @@ class image:
 
         self.completed_poster = img
         return True
+    
+    # Save the image to the images directory
+    def saveImage(self):
+        process = self.media_object._process
+        image_path = process.getOutputPath("images", "jpg")
+        image_dir = os.path.dirname(image_path) 
+        if process.createDirectory(image_dir):
+            try:
+                self.completed_poster.save(image_path, 'JPEG', quality=75)
+                return image_path
+            except Exception as e:
+                process.outputMessage(f"Error saving image: {e}","error")
+                return False
+        else:
+            return False
 
 # Main function to run the generator
 def main():
@@ -842,20 +861,19 @@ def main():
                 media_object.create_time=str(datetime.datetime.now())
                 
                 # Save the media object and image to the outputs directory
-                item_path = process.saveItem(media_object, "json") # Save Media JSON
-                if item_path: # Json saved successfully, save image
-                    image_path = process.saveItem(image_object, "images") # Save Poster Image
-                    if image_path: # Image saved successfully
+                #item_path = media_object.saveMediaObject() # Save Media JSON
+                #if item_path: # Json saved successfully, save image
+                if media_object.saveMediaObject(): # Json saved successfully
+                    # Save Poster Image
+                    if image_object.saveImage(): # Image saved successfully
                         process.outputMessage(f"Media created: '{media_object.title}', generate time: {str(datetime.datetime.now() - object_start_time)}","success")
                         process.success_count += 1
                     else: # Image failed to save, deleting media object
                         process.outputMessage(f"Error saving image for '{media_object.title}', cleaning up media json created","error")
-                        if os.path.exists(item_path):
-                            os.remove(item_path)
+                        media_object.objectCleanup()
                 else: # Json failed to save
                     process.outputMessage(f"Error saving media object '{media_object.title}', image not saved","error")
-                    if item_path and os.path.exists(item_path):
-                        os.remove(item_path)
+                    media_object.objectCleanup()
                     process.incrementGenerateCount()
                     continue
 
