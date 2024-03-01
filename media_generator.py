@@ -32,6 +32,9 @@ class processHelper:
         self.generate_count = 1
         self.generated_count = 0
         self.success_count = 0
+        self.image_fail_count = 0
+        self.completion_fail_count = 0
+        self.save_fail_count = 0
 
     def createProcessId(self):
         self.process_id = hashlib.md5(str(random.random()).encode()).hexdigest()[:16]
@@ -89,8 +92,21 @@ class processHelper:
     # Extracts text from a string based upon the start and end values
     def extractText(self, text, start, end):
         start_index = text.find(start)
-        end_index = text.find(end)
+        end_index = text.find(end)        
         return text[start_index:end_index+1]
+
+    def extractJson(self, text, start, end):
+        start_index = text.find(start)
+        end_index = text.find(end)
+        text = text[start_index:end_index+1]
+        try:
+            completion_json = json.loads(text)
+        except:         
+            # Escape the json string and return it
+            completion_json = json.loads(text.replace("'", "\\'").replace("\n", "\\n"))
+            self.outputMessage(f"Issue loading json, had to do some escaping:\n{completion_json}.","warning")
+
+        return completion_json
 
 # Parent class for the Azure OpenAI models
 class aoaiModel():
@@ -103,7 +119,7 @@ class aoaiModel():
         self.model = ""
         self.client = None
     
-    def clean_json(self):
+    def to_json(self):
         # Return a clean json object for saving details without sensitive information
         return {
             "endpoint": self.endpoint,
@@ -205,9 +221,9 @@ class media:
             "image_prompt": self.image_prompt,
             "vision_prompt": self.vision_prompt,
             "prompt_value_list": self.object_prompt_list,
-            "aoai_text": self.aoai_text.clean_json(),
-            "aoai_image": self.aoai_image.clean_json(),
-            "aoai_vision": self.aoai_vision.clean_json(),
+            "aoai_text": self.aoai_text.to_json(),
+            "aoai_image": self.aoai_image.to_json(),
+            "aoai_vision": self.aoai_vision.to_json(),
             "image_generation_time": self.image_generation_time,
             "prompts_temperature": self.prompts_temperature,
             "create_time": self.create_time
@@ -282,13 +298,13 @@ class media:
             return False
 
         # Parse the response and return the formatted json object
-        first_completion=response.choices[0].message.content
+        completion=response.choices[0].message.content
 
         # Find the start and end index of the json object
         try:
-            completion = json.loads(self._process.extractText(first_completion, "{", "}"))
+            completion = self._process.extractJson(completion, "{", "}")
+            
             # We need to check if the title, tagline and description exists in the completion, if not we cant use the completion for later purposes
-
             if "title" in completion and "tagline" in completion and "description" in completion:
                 self.media_id = self._process.process_id
                 self.title = completion["title"]
@@ -304,8 +320,8 @@ class media:
                 return False
         except Exception as e:
             self._process.outputMessage(f"Error parsing object completion","error")
-            print(first_completion)
-            print(e)
+            self._process.outputMessage(completion,"info")
+            self._process.outputMessage(e,"error")
             return False
 
     # Save the media object to a json file
@@ -397,12 +413,12 @@ class criticReview:
             return False
         
         # Parse the response
-        first_completion=response.choices[0].message.content
+        completion=response.choices[0].message.content
 
         # Find the start and end index of the json object
         try:
 
-            completion = json.loads(process.extractText(first_completion, "{", "}"))
+            completion = process.extractJson(completion, "{", "}")
 
             if completion["critic_score"] and completion["critic_review"]:
                 self.review = completion["critic_review"]
@@ -414,7 +430,10 @@ class criticReview:
                 return False
             
         except Exception as e:
-            process.outputMessage(f"Error parsing object completion\nCompletion:{first_completion}\n{e}","error")
+            process.outputMessage(f"Error parsing review completion","error")
+            process.outputMessage(completion,"info")
+            process.outputMessage(e,"error")
+            traceback.print_exc()
             return False
         
     def to_json(self):
@@ -518,12 +537,14 @@ class image:
         completion=response.choices[0].message.content
         # Find the start and end index of the json object
         try:
-            completion = json.loads(process.extractText(completion, "{", "}"))
+            completion = process.extractJson(completion, "{", "}")
             self.media_object.image_prompt["image_prompt_completion"] = completion["image_prompt"]
             self.media_object.image_prompt["font"] = completion["font"]
             return True
-        except:
-            process.outputMessage(f"Error parsing image prompt completion: {completion}","error")
+        except Exception as e:
+            process.outputMessage(f"Error parsing image prompt completion","error")
+            process.outputMessage(completion,"info")
+            process.outputMessage(e,"error")
             return False
         
     # Generate the image using the prompt
@@ -639,9 +660,11 @@ class image:
 
         # Find the start and end index of the json object for the vision completion
         try:
-            vision_completion = json.loads(process.extractText(vision_completion, "{", "}"))
-        except:
-            process.outputMessage(f"Error parsing vision prompt completion: {vision_completion}","error")
+            vision_completion = process.extractJson(vision_completion, "{", "}")
+        except Exception as e:
+            process.outputMessage(f"Error parsing vision prompt completion","error")
+            print(vision_completion)
+            process.outputMessage(e,"error")
             return False
 
         self.media_object.vision_prompt["location"] = vision_completion["location"]
@@ -808,6 +831,7 @@ def main():
         process.outputMessage(f"Submitting object prompt for completion","")
         if not media_object.generateObject():
             process.incrementGenerateCount()
+            process.completion_fail_count += 1
             continue
         else:
             if args.verbose:
@@ -824,6 +848,7 @@ def main():
             process.outputMessage(f"Critic prompt:\n {review.critic_prompt}","verbose")
         if not review.generateCriticReview():
             process.incrementGenerateCount()
+            process.completion_fail_count += 1
             continue
         if args.verbose:        
             process.outputMessage(f"Critic review:\n {media_object.reviews}","verbose")
@@ -840,6 +865,7 @@ def main():
         
         if not image_object.generateImagePrompt():
             process.incrementGenerateCount()
+            process.completion_fail_count += 1
             continue
         if args.verbose: 
             process.outputMessage(f"Image prompt:\n{image_object.poster_prompt['image_prompt']}","verbose")
@@ -852,17 +878,14 @@ def main():
             if not image_object.processImage():
                 process.outputMessage(f"Error processing image for '{media_object.title}'","error")
                 process.incrementGenerateCount()
+                process.image_fail_count += 1
                 continue
             else:
                 process.outputMessage(f"Image created for '{media_object.title}', image generate time: {str(datetime.datetime.now() - image_start_time)}","")
                 media_object.image_generation_time = str(datetime.datetime.now())
-                #media_object.image_prompt = image_object.poster_prompt["image_prompt"].replace("'", "\"")
-                #media_object.image_font = image_object.poster_prompt["font"] if "font" in image_object.poster_prompt else "arial"
                 media_object.create_time=str(datetime.datetime.now())
                 
                 # Save the media object and image to the outputs directory
-                #item_path = media_object.saveMediaObject() # Save Media JSON
-                #if item_path: # Json saved successfully, save image
                 if media_object.saveMediaObject(): # Json saved successfully
                     # Save Poster Image
                     if image_object.saveImage(): # Image saved successfully
@@ -871,16 +894,22 @@ def main():
                     else: # Image failed to save, deleting media object
                         process.outputMessage(f"Error saving image for '{media_object.title}', cleaning up media json created","error")
                         media_object.objectCleanup()
+                        process.save_fail_count += 1
                 else: # Json failed to save
                     process.outputMessage(f"Error saving media object '{media_object.title}', image not saved","error")
                     media_object.objectCleanup()
                     process.incrementGenerateCount()
+                    process.save_fail_count += 1
                     continue
+        else:
+            process.image_fail_count += 1
 
         process.incrementGenerateCount()
     
     message_level = "success" if process.success_count == process.generate_count else "warning"
     process.outputMessage(f"Finished generating {str(process.success_count)} media object{'s' if process.success_count > 1 else ''} of {process.generate_count}, Total Time: {str(datetime.datetime.now() - start_time)}",message_level)
+    if process.success_count < process.generate_count:
+        process.outputMessage(f"Prompt Completion failures: {process.completion_fail_count}\nImage Generate Failures: {process.image_fail_count}\nSave Failures: {process.save_fail_count}","info")
 
 if __name__ == "__main__":
     main()
