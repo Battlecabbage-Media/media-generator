@@ -189,7 +189,14 @@ class media:
         self.reviews = []
         self.movie_prompt = {}
         self.image_prompt = {}
-        self.vision_prompt = {}
+        self.vision_prompt = {
+            "vision": "",
+            "vision_system": "",
+            "location": "top",
+            "location_padding": 50,
+            "font_color": "#FFFFFF",
+            "has_text": False
+        }
         self.object_prompt_list = {}
         # Setting some Models stuff
         self.aoai_text = aoaiText()
@@ -657,7 +664,6 @@ class image:
             return False
 
         vision_completion = response.choices[0].message.content
-
         # Find the start and end index of the json object for the vision completion
         try:
             vision_completion = process.extractJson(vision_completion, "{", "}")
@@ -666,11 +672,15 @@ class image:
             print(vision_completion)
             process.outputMessage(e,"error")
             return False
-
-        self.media_object.vision_prompt["location"] = vision_completion["location"]
-        self.media_object.vision_prompt["location_padding"] = vision_completion["location_padding"]
-        self.media_object.vision_prompt["font_color"] = vision_completion["font_color"]
-        self.media_object.vision_prompt["has_text"] = vision_completion["has_text"]
+        
+        if "location" in vision_completion:
+            self.media_object.vision_prompt["location"] = vision_completion["location"]
+        if "location_padding" in vision_completion:
+            self.media_object.vision_prompt["location_padding"] = vision_completion["location_padding"]
+        if "font_color" in vision_completion:
+            self.media_object.vision_prompt["font_color"] = vision_completion["font_color"]
+        if "has_text" in vision_completion:
+            self.media_object.vision_prompt["has_text"] = vision_completion["has_text"]
 
         # Open the image file for manipulation
         with Image.open(self.generated_image) as img:
@@ -678,7 +688,7 @@ class image:
             draw = ImageDraw.Draw(img)
             
             # Check if the poster has text and if it doesnt, title it.
-            if vision_completion["has_text"] == False:
+            if self.media_object.vision_prompt["has_text"] == False:
 
                 img_w, img_h = img.size
                 fontsize = 1  # starting font size
@@ -713,7 +723,7 @@ class image:
                 # The height of the font is the delta of its ascent and descent
                 ascent, descent = font.getmetrics()
                 font_height = ascent - descent
-                section_top =  vision_completion["location_padding"]
+                section_top =  self.media_object.vision_prompt["location_padding"]
                 section_middle = (img_h / 2) - (font_height * len(text_list) + (20 * len(text_list))) # Center of the image but offset by font, line count and general padding
                 section_bottom = img_h - (img_h / 8)
                 section_bottom = section_bottom - font_height if len(text_list) > 1 else section_bottom # shave off one font height if there are two lines of text
@@ -726,12 +736,12 @@ class image:
                     text_line = text_line.strip()
                 
                     # Get the starting location for the text based upon the layout
-                    y_location = vision_completion["location"] if "location" in vision_completion else "top"
+                    y_location = self.media_object.vision_prompt["location"]
                     if line_count == 1:
                         y_placement = y_placements[y_location]
                     else:
                         y_placement = y_placements[y_location] + (font_height * (line_count - 1)) + (font_height * .70) 
-                    font_color = vision_completion["font_color"] if "font_color" in vision_completion else "#000000"
+                    font_color = self.media_object.vision_prompt["font_color"]
                     stroke_color = "#111111" if font_color > "#999999" else "#DDDDDD"
                     # put the text on the image
                     draw.text((w_placement, y_placement), text_line, fill=font_color, font=font, stroke_width=1, stroke_fill=stroke_color, align='center') 
