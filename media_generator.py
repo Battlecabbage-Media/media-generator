@@ -797,7 +797,8 @@ def main():
     # For command line arguments
     parser = argparse.ArgumentParser(description="Provide various run commands.")
     # Argument for the count of media objects to generate
-    parser.add_argument("-c", "--count", help="Number of media objects to generate")
+    # Add env as default to allow setting via env var
+    parser.add_argument("-c", "--count", default=os.environ.get('GENERATE_COUNT'), help="Number of media objects to generate")
     # Argument for the dry run, to generate a response without saving it to a file TODO, actually make this do something
     parser.add_argument("-d", "--dryrun", action='store_true', help="Dry run, generate a response without saving it to a file")
     # Argument for verbose mode, to display object outputs
