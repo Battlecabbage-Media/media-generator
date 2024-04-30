@@ -13,6 +13,6 @@ RUN echo "deb http://deb.debian.org/debian bookworm contrib non-free" > /etc/apt
 FROM msfonts AS final
 WORKDIR /app
 RUN mkdir outputs
-VOLUME /outputs
+VOLUME /app/outputs
 RUN chmod +x media_generator.py
 CMD ["python", "media_generator.py"]
