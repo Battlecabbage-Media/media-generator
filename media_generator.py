@@ -173,7 +173,8 @@ class aoaiVision(aoaiModel):
         self.client = AzureOpenAI(
             api_key=self.key,  
             api_version=self.api_version,
-            base_url=f"{self.endpoint}openai/deployments/{self.deployment_name}/extensions"
+            azure_endpoint=self.endpoint
+            #base_url=f"{self.endpoint}openai/deployments/{self.deployment_name}/extensions"
         )
 
 # Class for the media object
@@ -634,7 +635,6 @@ class image:
         base64_encoded_data = base64.b64encode(self.generated_image.read()).decode('utf-8')
 
         vision_model = aoaiVision()
-
         try:
 
             response = vision_model.client.chat.completions.create(
@@ -643,14 +643,14 @@ class image:
                     { "role": "system", "content": self.media_object.vision_prompt['vision_system'] },
                     { "role": "user", "content": [  
                         { 
-                            "type": "text", 
-                            "text": self.media_object.vision_prompt['vision']
-                        },
-                        { 
                             "type": "image_url",
                             "image_url": {
                                 "url": f"data:{mime_type};base64,{base64_encoded_data}"
                             }
+                        },
+                        { 
+                            "type": "text", 
+                            "text": self.media_object.vision_prompt['vision']
                         }
                     ] } 
                 ],
