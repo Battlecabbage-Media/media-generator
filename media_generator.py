@@ -6,6 +6,7 @@ import random
 import hashlib
 import argparse
 import datetime
+import logging
 from PIL import Image, ImageDraw, ImageFont
 from matplotlib import font_manager
 from fontTools.ttLib import TTFont, TTCollection
@@ -24,6 +25,29 @@ import traceback
 # but I made it worse. There is a lot that could be improved, lots of repeated logic/methods and just general messiness because it being such hybrid of procedural
 # and OOP
 
+# Custom format class to handle coloring of console output
+class CustomFormatter(logging.Formatter):
+
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "%(asctime)s - [%(levelname)s] - %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
 # Create a class for common values and functions across the script
 class processHelper:
     
@@ -36,6 +60,19 @@ class processHelper:
         self.completion_fail_count = 0
         self.save_fail_count = 0
 
+        logFormatter = logging.Formatter("%(asctime)s - [%(levelname)s] - %(message)s")
+        self.rootLogger = logging.getLogger()
+
+        fileHandler = logging.FileHandler("{0}/{1}.log".format('outputs', 'movie_generation.log'))
+        fileHandler.setFormatter(logFormatter)
+        self.rootLogger.addHandler(fileHandler)
+
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setFormatter(CustomFormatter())
+        self.rootLogger.addHandler(consoleHandler)
+
+        self.rootLogger.setLevel(logging.INFO)
+
     def createProcessId(self):
         self.process_id = hashlib.md5(str(random.random()).encode()).hexdigest()[:16]
     
@@ -47,22 +84,31 @@ class processHelper:
     def outputMessage(self, message, level):
     
         if level == "error":
-            color = "\033[91m" # Red
+            self.rootLogger.error(f"{self.process_id} - {message}")
+            #color = "\033[91m" # Red
         elif level == "success":
+            self.rootLogger.info(f"{self.process_id} - {message}")
             color = "\033[92m" # Green
+            print(f"{str(datetime.datetime.now())} - {self.process_id} - {color}{message}")
+            print("\033[0m", end="") # Reset color
         elif level == "info":
-            color = "\033[94m" # Blue
+            self.rootLogger.info(f"{self.process_id} - {message}")
+            #color = "\033[94m" # Blue
         elif level == "warning":
-            color = "\033[93m"  # Yellow
+            self.rootLogger.warning(f"{self.process_id} - {message}")
+            #color = "\033[93m"  # Yellow
         elif level == "debug":
-            color = "\033[95m"  # Purple
+            self.rootLogger.debug(f"{self.process_id} - {message}")
+            #color = "\033[95m"  # Purple
         elif level == "verbose":
-            color = "\033[96m"  # Cyan
+            self.rootLogger.debug(f"{self.process_id} - {message}")
+            #color = "\033[96m"  # Cyan
         else:
-            color = "\033[0m" # white
+            self.rootLogger.info(f"{self.process_id} - {message}")
+            #color = "\033[0m" # white
 
-        print(f"{str(datetime.datetime.now())} - {self.process_id} - {color}{message}")
-        print("\033[0m", end="") # Reset color
+        #print(f"{str(datetime.datetime.now())} - {self.process_id} - {color}{message}")
+        #print("\033[0m", end="") # Reset color
 
     # increments the generated count to keep loop going, is there a better way to do this?
     def incrementGenerateCount(self):
@@ -302,7 +348,8 @@ class media:
                 max_tokens=600, temperature=self.prompts_temperature)
         except Exception as e:
             self._process.outputMessage(f"Error generating object : {e}", "error")
-            if self._verbose: traceback.print_exc()
+            if self._verbose: 
+                self._process.outputMessage(traceback.format_exc(), "verbose")
             return False
 
         # Parse the response and return the formatted json object
@@ -417,7 +464,8 @@ class criticReview:
                 max_tokens=600, temperature=self.media_object.prompts_temperature)
         except Exception as e:
             process.outputMessage(f"Error generating critic review : {e}", "error")
-            if verbose: traceback.print_exc()
+            if verbose: 
+                self._process.outputMessage(traceback.format_exc(), "verbose")
             return False
         
         # Parse the response
@@ -539,7 +587,8 @@ class image:
             
         except Exception as e:
             process.outputMessage(f"Error generating image prompt: {e}","error")
-            if verbose: traceback.print_exc()
+            if verbose: 
+                process.outputMessage(traceback.format_exc(), "verbose")
             return False
         
         completion=response.choices[0].message.content
@@ -659,8 +708,8 @@ class image:
 
         except Exception as e:
             process.outputMessage(f"Error processing image: {e}","error")
-            #if verbose: traceback.print_exc()
-            traceback.print_exc()
+            if verbose: 
+                process.outputMessage(traceback.format_exc(), "verbose")
             return False
 
         vision_completion = response.choices[0].message.content
@@ -669,8 +718,9 @@ class image:
             vision_completion = process.extractJson(vision_completion, "{", "}")
         except Exception as e:
             process.outputMessage(f"Error parsing vision prompt completion","error")
-            print(vision_completion)
-            process.outputMessage(e,"error")
+            if verbose:
+                process.outputMessage(vision_completion,"verbose")
+                process.outputMessage(e,"verbose")
             return False
         
         if "location" in vision_completion:
@@ -856,7 +906,7 @@ def main():
             process.incrementGenerateCount()
             continue
         if args.verbose:
-            process.outputMessage(f"Critic prompt:\n {review.critic_prompt}","verbose")
+            process.outputMessage(f"Critic prompt:\n {review.prompt}","verbose")
         if not review.generateCriticReview():
             process.incrementGenerateCount()
             process.completion_fail_count += 1
