@@ -2,5 +2,6 @@
 .venv
 outputs/**/*.json
 outputs/**/*.jpg
+outputs/*.log
 
 **/__pycache__/
